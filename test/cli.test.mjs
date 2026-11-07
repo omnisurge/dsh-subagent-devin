@@ -211,3 +211,56 @@ test('读取 CLI 状态：stdin 必须接成 /dev/null，否则会被误判成�
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('库里存的是平台接口密钥时，不把它当可用密钥，改从本机 CLI 导入并替换', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'devin-platform-'));
+  const file = join(dir, 'credentials.toml');
+  const sets = [];
+  const previous = process.env.FAKE_CREDENTIAL_FILE;
+  try {
+    await writeFile(file, 'windsurf_api_key = "devin-imported-by-test"\n', { mode: 0o600 });
+    process.env.FAKE_CREDENTIAL_FILE = file;
+    const { resolveProbeKey, isPlatformApiKey } = await import('../lib/index.js');
+
+    assert.equal(isPlatformApiKey('apk_user_abc'), true);
+    assert.equal(isPlatformApiKey('devin-abc'), false);
+    assert.equal(isPlatformApiKey(''), false);
+    assert.equal(isPlatformApiKey(undefined), false);
+
+    const ctx = {
+      get: (key) => (key === 'credentials'
+        ? {
+          describe: async () => ({ configured: true }),
+          resolve: async () => ({ value: 'apk_user_unusable' }),
+          set: async (ref, value) => { sets.push([ref, value]); },
+        }
+        : undefined),
+      logger: { info: () => {}, warn: () => {} },
+    };
+    const resolved = await resolveProbeKey(ctx, { credentialRef: 'WINDSURF_API_KEY', importFromCli: true }, FAKE);
+    assert.equal(resolved.source, 'cli', '平台密钥不能算作可用密钥');
+    assert.ok(resolved.value.startsWith('devin-'));
+    assert.equal(sets.length, 1, '要把能用的密钥写回凭据库');
+    assert.ok(sets[0][1].startsWith('devin-'));
+  } finally {
+    if (previous === undefined) delete process.env.FAKE_CREDENTIAL_FILE;
+    else process.env.FAKE_CREDENTIAL_FILE = previous;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('库里是平台密钥且关掉自动导入时，明确说是平台密钥而不是“导入已关闭”', async () => {
+  const { resolveProbeKey } = await import('../lib/index.js');
+  const ctx = {
+    get: (key) => (key === 'credentials'
+      ? {
+        describe: async () => ({ configured: true }),
+        resolve: async () => ({ value: 'apk_user_unusable' }),
+        set: async () => {},
+      }
+      : undefined),
+    logger: { info: () => {}, warn: () => {} },
+  };
+  const resolved = await resolveProbeKey(ctx, { credentialRef: 'WINDSURF_API_KEY', importFromCli: false }, FAKE);
+  assert.equal(resolved.reason, 'platform-key-unusable');
+});

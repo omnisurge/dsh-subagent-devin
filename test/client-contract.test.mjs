@@ -46,7 +46,12 @@ test('Host 会给出的原因码，页面都有文案', async () => {
   const host = `${await read('lib/index.js')}\n${await read('lib/cli.js')}`;
   const hostCodes = new Set([...host.matchAll(/reason: '([a-z-]+)'/g)].map((match) => match[1]));
   hostCodes.add('cli-not-logged-in'); // 由 readCredentialFromCli 返回
-  const clientCodes = new Set([...client.matchAll(/'(reason-[a-z-]+)'/g)].map((match) => match[1].slice('reason-'.length)));
+  // 只认**词典里的键**。之前这里匹配任意带引号的 'reason-xxx'，于是页面里
+  // `t('reason-xxx')` 这种调用点也被当成“有文案”，真缺文案时门禁照样绿。
+  const zhStart = client.indexOf('const ZH = {');
+  const zhEnd = client.indexOf('/** 样式');
+  const zhDict = client.slice(zhStart, zhEnd);
+  const clientCodes = new Set([...zhDict.matchAll(/'(reason-[a-z-]+)':/g)].map((match) => match[1].slice('reason-'.length)));
   const missing = [...hostCodes].filter((code) => !clientCodes.has(code));
   assert.deepEqual(missing, [], `页面缺这些原因码的文案：${missing.join(', ')}`);
 });

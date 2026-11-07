@@ -56,9 +56,10 @@ function textOf(node) {
 async function loadPage(ctx) {
   const source = await readFile(SOURCE, 'utf8');
   let definition;
+  const clipboard = [];
   const sandbox = {
     window: { __ModuleLoader__: { load: (value) => { definition = value; } } },
-    navigator: { clipboard: { writeText: async () => {} } },
+    navigator: { clipboard: { writeText: async (text) => { clipboard.push(text); } } },
     console,
     setTimeout,
     clearTimeout,
@@ -94,7 +95,7 @@ async function loadPage(ctx) {
   assert.ok(Page, '必须注册一个设置页组件');
 
   const t = (key) => key; // 注册时包装层会用插件自己的词典覆盖它
-  return () => {
+  const render = () => {
     runtime.beginRender();
     let tree = Page({ t, ctx, close: () => {} });
     // 注册的是包装组件（(props) => h(Page, ...)），这里把内层组件展开再断言。
@@ -104,6 +105,8 @@ async function loadPage(ctx) {
     runtime.runEffects();
     return { tree, runtime };
   };
+  render.clipboard = clipboard;
+  return render;
 }
 
 const settingsStub = (value) => ({
@@ -137,7 +140,8 @@ test('渲染冒烟：未登录态给出两条路、命令块和输入框', async
   const text = textOf(tree);
   assert.match(text, /未连接/);
   assert.match(text, /方式一/);
-  assert.match(text, /devin auth login/);
+  assert.match(text, /\/x\/devin/, '命令块要显示真实路径，短名在这台机器上跑不起来');
+  assert.match(text, /auth login/);
   assert.match(text, /方式二/);
   assert.match(text, /粘贴 devin- 开头的密钥/);
   assert.match(text, /本机 Devin 还没有登录/, '原因码要翻成人话');
@@ -178,4 +182,55 @@ test('渲染冒烟：已连接态显示账号、模型数与密钥行，且不�
   assert.match(text, /devin-…/);
   assert.match(text, /替换密钥/);
   assert.equal(/devin auth login/.test(text), false, '已连接后不再展示登录命令');
+});
+
+test('渲染冒烟：命令块显示的文字与复制按钮复制的内容完全一致', async () => {
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? credentialsStub(false)
+      : (key === 'remote.settings' ? settingsStub({
+        credentialRef: 'WINDSURF_API_KEY',
+        probe: { reason: 'cli-not-logged-in', command: '/Applications/Devin.app/x/devin' },
+      }) : undefined)),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const { tree } = render();
+
+  const findCopyButton = (node) => {
+    if (node === null || typeof node !== 'object') return null;
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        const found = findCopyButton(child);
+        if (found !== null) return found;
+      }
+      return null;
+    }
+    if (node.type === 'button' && textOf(node.children ?? []).trim() === '复制') return node;
+    for (const child of node.children ?? []) {
+      const found = findCopyButton(child);
+      if (found !== null) return found;
+    }
+    return null;
+  };
+  const button = findCopyButton(tree);
+  assert.ok(button, '应该有「复制」按钮');
+  button.props.onClick();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+
+  const codeNode = (function walk(node) {
+    if (node === null || typeof node !== 'object') return null;
+    if (Array.isArray(node)) {
+      for (const child of node) { const found = walk(child); if (found !== null) return found; }
+      return null;
+    }
+    if (node.type === 'code') return node;
+    for (const child of node.children ?? []) { const found = walk(child); if (found !== null) return found; }
+    return null;
+  })(tree);
+
+  assert.equal(render.clipboard.length, 1);
+  assert.equal(render.clipboard[0], textOf(codeNode).trim(), '复制的内容必须与屏幕上显示的一字不差');
+  assert.match(render.clipboard[0], /^"\/Applications\/Devin\.app\/x\/devin" auth login$/);
 });

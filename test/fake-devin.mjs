@@ -20,7 +20,8 @@ if (argv[0] === 'auth') {
     'Logged in (via Devin).',
     '',
     'Credentials:',
-    '  File:              /nonexistent/fake-devin-credentials.toml',
+    // 由测试指定凭据文件位置，避免读到真机上真实的凭据文件。
+    `  File:              ${process.env.FAKE_CREDENTIAL_FILE ?? '/nonexistent/fake-devin-credentials.toml'}`,
     '',
     'User:',
     '  Name:              Fake Account',
@@ -100,6 +101,11 @@ async function handle(message) {
       return;
     }
     case 'session/new': {
+      // 场景：认证阶段放行，但开会话时后端说密钥无效（真机上的实际表现之一）。
+      if (scenario === 'session-authfail') {
+        replyError(id, -32000, 'Failed to load team settings: Authentication required: invalid api key');
+        return;
+      }
       const model = requestedModel ?? 'swe-2-flash-medium';
       reply(id, {
         sessionId,

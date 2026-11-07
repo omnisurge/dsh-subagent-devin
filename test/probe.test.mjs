@@ -33,6 +33,15 @@ test('探测：认证被拒时如实说明，不把空列表当成功', async ()
   assert.match(result.error, /invalid api key/, '原始诊断另存，供开发者排查');
 });
 
+test('探测：开会话时密钥被拒要归为 auth-failed，不能笼统说成握手失败', async () => {
+  process.env.FAKE_SCENARIO = 'session-authfail';
+  const result = await probeDevin({ command: FAKE, apiKey: 'mwjjh-fxvt' });
+  assert.equal(result.ok, false);
+  assert.equal(result.authenticated, false);
+  assert.equal(result.reason, 'auth-failed', '密钥无效与后端不应答的下一步不一样');
+  assert.match(result.error, /api key/);
+});
+
 test('探测：可执行文件不存在时给出可读原因，而不是抛栈', async () => {
   const result = await probeDevin({ command: '/nonexistent/devin-binary', apiKey: 'x' });
   assert.equal(result.ok, false);

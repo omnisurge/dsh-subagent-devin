@@ -87,6 +87,16 @@ mutate "不归一化 configOptions" lib/acp.js \
   "      sessionConfigOptions = created?.configOptions ?? {};" \
   "「认证成功后拿到账号可用模型」"
 
+mutate "把平台密钥当成可用密钥" lib/index.js \
+  "  if (typeof stored === 'string' && stored !== '' && !isPlatformApiKey(stored)) {" \
+  "  if (typeof stored === 'string' && stored !== '') {" \
+  "「库里存的是平台接口密钥」用例"
+
+mutate "认证失败都算握手失败" lib/probe.js \
+  "        : (looksLikeAuth ? 'auth-failed' : 'handshake-failed')," \
+  "        : 'handshake-failed'," \
+  "「开会话时密钥被拒」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \
