@@ -45,6 +45,11 @@
 | `credentialRef` | string | `WINDSURF_API_KEY` | 凭据引用名，**不是**密钥本身 |
 | `importFromCli` | boolean | `true` | 库里没密钥时，从本机 CLI 凭据文件导入一次；**不覆盖已有值** |
 
+命令行解析（三平台收口）：配置 > PATH（`devin`/`devin.exe`）> 各平台候选目录
+（macOS App 内、Windows `%LOCALAPPDATA%\Programs\Devin\…\devin.exe`、Linux `/usr/share/devin` 与 `~/.local/bin`）。
+显式配置指向不存在的文件时**不静默替换**，标 `missing` 让人知道路径是坏的。
+Windows 路径用反斜杠自行拼接（`path.join` 用本机分隔符，跨平台拼会得到混合分隔符）。
+
 密钥来源的判定（实测）：CLI 二进制里 `apk_` 出现 0 次，`WINDSURF_API_KEY` 出现 4 次 →
 可用的只有 `devin-` 前缀的 CLI 凭据（189 字符），平台页的 `apk_user_` 是 REST API 密钥，不能用于 ACP。
 

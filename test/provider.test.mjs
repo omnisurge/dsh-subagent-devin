@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { apply, Config, DEFAULT_COMMAND } from '../lib/index.js';
+import { apply, Config } from '../lib/index.js';
 import { childEnvironment } from '../lib/acp.js';
 
 const FAKE = fileURLToPath(new URL('./fake-devin.mjs', import.meta.url));
@@ -240,7 +240,7 @@ test('子进程环境：父凭据形状被擦掉，显式传入的密钥保留',
 
 test('配置面：默认值与文档一致，且默认命令是应用自带路径', () => {
   const resolved = Config(baseConfig());
-  assert.equal(Config({}).command, DEFAULT_COMMAND);
+  assert.equal(Config({}).command, '', '命令默认留空，交给平台解析器发现');
   assert.equal(Config({}).permission, 'allow');
   assert.equal(Config({}).credentialRef, 'WINDSURF_API_KEY');
   assert.equal(resolved.model, '');
