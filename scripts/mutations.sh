@@ -102,6 +102,11 @@ mutate "页面不自动刷新" lib/client.js \
   "        const timer = 0;" \
   "「页面会自己刷新过来」用例"
 
+mutate "没结果时冒充未连接" lib/client.js \
+  "      const checking = busy === 'check' || waiting;" \
+  "      const checking = busy === 'check';" \
+  "「明说在检查」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

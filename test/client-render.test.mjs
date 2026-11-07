@@ -262,7 +262,7 @@ test('渲染冒烟：探测结果在页面打开之后才落地时，页面会�
   const render = await loadPage(ctx);
   render();
   await new Promise((resolve) => setTimeout(resolve, 5));
-  assert.match(textOf(render().tree), /未连接/, '还没探测完时应显示未连接');
+  assert.match(textOf(render().tree), /检测中/, '还没探测完时应说“检测中”，而不是冒充“未连接”');
 
   // 探测写完了：换成已连接的数据，拨一次表（模拟 2 秒后页面自己重读）
   value = {
@@ -285,4 +285,24 @@ test('渲染冒烟：探测结果在页面打开之后才落地时，页面会�
   const text = textOf(render().tree);
   assert.match(text, /已连接/, '后落地的探测结果要能自己显示出来，不用用户手动点');
   assert.match(text, /Example Account/);
+});
+
+test('渲染冒烟：探测还没回来的那几秒，页面明说在检查，而不是显示未连接', async () => {
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? { describe: async () => ({ WINDSURF_API_KEY: { configured: false } }), set: async () => {}, unset: async () => {} }
+      : (key === 'remote.settings'
+        ? {
+          describe: async () => ({ namespaces: [{ ns: 'include:subagent-devin', revision: 1, value: { credentialRef: 'WINDSURF_API_KEY' } }] }),
+          update: async () => {},
+        }
+        : undefined)),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const text = textOf(render().tree);
+  assert.match(text, /检测中/, '要有“正在检查”的可见回执');
+  assert.match(text, /正在检查本机 Devin 的登录状态与密钥/);
+  assert.equal(/未连接/.test(text), false, '还没查完就不能说未连接');
 });
