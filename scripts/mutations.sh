@@ -82,6 +82,11 @@ mutate "CLI 的 stdin 接成管道" lib/cli.js \
   "      child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] });" \
   "stdin 必须接成 /dev/null"
 
+mutate "不归一化 configOptions" lib/acp.js \
+  "      sessionConfigOptions = normalizeConfigOptions(created?.configOptions);" \
+  "      sessionConfigOptions = created?.configOptions ?? {};" \
+  "「认证成功后拿到账号可用模型」"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

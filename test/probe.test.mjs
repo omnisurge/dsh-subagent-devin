@@ -39,3 +39,22 @@ test('探测：可执行文件不存在时给出可读原因，而不是抛栈',
   assert.equal(result.reason, 'cli-not-runnable');
   assert.match(result.error, /ENOENT|spawn/i);
 });
+
+test('configOptions 归一化：真实后端的数组形状与旧的对象形状都收敛成同一份映射', async () => {
+  const { normalizeConfigOptions } = await import('../lib/acp.js');
+  const fromArray = normalizeConfigOptions([
+    { id: 'mode', type: 'select', currentValue: 'accept-edits', options: [{ value: 'ask' }] },
+    { id: 'model', type: 'select', currentValue: 'swe-2-flash-medium', options: [{ value: 'swe-1-6-slow' }] },
+  ]);
+  assert.equal(fromArray.model.currentValue, 'swe-2-flash-medium');
+  assert.equal(fromArray.model.options.length, 1);
+  assert.equal(fromArray.mode.currentValue, 'accept-edits');
+
+  const fromObject = normalizeConfigOptions({ model: { currentValue: 'x', options: [] } });
+  assert.equal(fromObject.model.currentValue, 'x');
+
+  assert.deepEqual(normalizeConfigOptions(undefined), {});
+  assert.deepEqual(normalizeConfigOptions(null), {});
+  assert.deepEqual(normalizeConfigOptions('nonsense'), {});
+  assert.deepEqual(normalizeConfigOptions([null, 3, {}]), {}, '坏条目要跳过而不是崩');
+});

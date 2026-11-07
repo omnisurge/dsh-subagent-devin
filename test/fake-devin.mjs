@@ -103,8 +103,24 @@ async function handle(message) {
       const model = requestedModel ?? 'swe-2-flash-medium';
       reply(id, {
         sessionId,
-        configOptions: {
-          model: {
+        // 真实后端给的是**数组**，每项带 id。替身必须照抄这个形状，
+        // 否则测试会一起相信一个错误假设（实测踩过：数组被当成对象，模型列表恒为空）。
+        configOptions: [
+          {
+            id: 'mode',
+            name: 'Mode',
+            type: 'select',
+            currentValue: 'accept-edits',
+            options: [
+              { value: 'accept-edits', name: 'Code' },
+              { value: 'ask', name: 'Ask' },
+              { value: 'plan', name: 'Plan' },
+            ],
+          },
+          {
+            id: 'model',
+            name: 'Model',
+            type: 'select',
             currentValue: scenario === 'setcfg' ? 'swe-2-flash-medium' : model,
             // 未认证时后端不给出可用模型（实测行为）。
             options: authenticated
@@ -114,14 +130,19 @@ async function handle(message) {
               ]
               : [],
           },
-        },
+        ],
       });
       return;
     }
     case 'session/set_config_option':
       globalThis.__setConfigCalls = [...(globalThis.__setConfigCalls ?? []), params];
       if (scenario === 'setcfg') {
-        reply(id, { configOptions: { model: { currentValue: params.value, options: [] } } });
+        reply(id, {
+          configOptions: [
+            { id: 'mode', name: 'Mode', type: 'select', currentValue: 'accept-edits', options: [] },
+            { id: 'model', name: 'Model', type: 'select', currentValue: params.value, options: [] },
+          ],
+        });
       } else {
         replyError(id, -32601, 'set_config_option is not supported by this fake');
       }
