@@ -19,6 +19,7 @@ test('探测：认证成功后拿到账号可用模型，且全程不发 prompt'
   assert.deepEqual(result.models.map((model) => model.value), ['swe-2-flash-medium', 'swe-1-6-slow']);
   assert.deepEqual(result.models.map((model) => model.name), ['SWE-2 Flash Medium', 'SWE-1.6 Slow']);
   assert.equal(result.current, 'swe-2-flash-medium');
+  assert.equal(result.account, 'Fake Account', '账号名应从 CLI 的本地状态读出来');
   assert.match(result.at, /^\d{4}-\d{2}-\d{2}T/);
 });
 

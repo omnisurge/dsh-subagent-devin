@@ -19,6 +19,22 @@
 认证走子进程环境变量 `WINDSURF_API_KEY`，值在每次运行前从凭据服务解析；父进程里任何
 `KEY|PASSWORD|SECRET|TOKEN` 形状的变量都不会带进子进程。
 
+## 密钥从哪来
+
+Devin 有两个长得很像但互不通用的密钥面：
+
+| 前缀 | 来源 | 能用吗 |
+|---|---|---|
+| `devin-…`（189 字符） | 本机 CLI 登录后写进 `~/.local/share/devin/credentials.toml` 的 `windsurf_api_key` | **能用**（实测跑通过一轮） |
+| `apk_user_…` | Devin 平台「API keys (legacy)」页，给第三方调 REST API | CLI 二进制里连 `apk_` 这个前缀都没有，不能用作 ACP 凭据 |
+
+插件默认**自动导入**：启动时如果凭据库里还没有 `WINDSURF_API_KEY`，就通过
+`devin auth status` 找到凭据文件、取出 `windsurf_api_key`、写进官方凭据服务。
+密钥只在 Host 内存里过一手，不到页面、不进日志；已有值不会被覆盖。
+关掉自动导入：配置项 `importFromCli: false`。
+
+也可以在设置页手工粘贴——两条路写进同一个凭据引用。
+
 ## 配置
 
 配置在插件行里（`cordis.patch.yml`），字段见 `lib/index.js` 的 `Config`：
@@ -29,6 +45,7 @@
 | `model` | 空（跟随账号默认） | 例如 `swe-2-flash-medium`、`swe-1-6-slow` |
 | `permission` | `allow` | 权限请求自动答复：`allow` 可改文件，`reject` 一律拒绝 |
 | `credentialRef` | `WINDSURF_API_KEY` | 凭据引用名；密钥本身不进配置 |
+| `importFromCli` | `true` | 库里没密钥时，从本机 Devin CLI 的登录凭据导入一次 |
 | `requestTimeoutMs` | 600000 | 单次运行上限 |
 | `disposeEofGraceMs` / `disposeGraceMs` | 6000 / 3000 | 释放阶梯宽限 |
 
@@ -48,7 +65,7 @@ node --test test/provider.test.mjs   # G1
 |---|---|
 | Host provider + 工具行 | 已实现，G1 13 例通过（含变异撤回验证） |
 | 真实 turn | 未验（需要授权的一次真实调用） |
-| 设置页（密钥/模型/权限） | 未实现，设计稿在 `docs/design/settings-page.svg` |
+| 设置页（密钥/模型/权限） | 已实现并在真实客户端注册成功（`settings.section` → `devin-subagent`）；页面交互未验 |
 | 模式（Ask/Plan/Bypass） | 未实现：`session/set_config_option` 的形态未实测 |
 
 契约与决定：`docs/specs/devin-subagent.md`、`docs/adr/ADR-001-provider-and-settings-page.md`。

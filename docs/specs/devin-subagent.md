@@ -43,6 +43,10 @@
 | `mode` | — | 会话默认 `accept-edits` | **M1 不提供**：`session/set_config_option` 的形态未实测，先不暴露一个可能无声失效的开关 |
 | `permission` | `'reject' \| 'allow'` | `allow` | ACP 权限请求的自动答复；`allow` = 子代理可直接改文件，无 DSH 审批闸门 |
 | `credentialRef` | string | `WINDSURF_API_KEY` | 凭据引用名，**不是**密钥本身 |
+| `importFromCli` | boolean | `true` | 库里没密钥时，从本机 CLI 凭据文件导入一次；**不覆盖已有值** |
+
+密钥来源的判定（实测）：CLI 二进制里 `apk_` 出现 0 次，`WINDSURF_API_KEY` 出现 4 次 →
+可用的只有 `devin-` 前缀的 CLI 凭据（189 字符），平台页的 `apk_user_` 是 REST API 密钥，不能用于 ACP。
 
 不变量：任何字段都不得承载密钥值；`Config` 的 JSON Schema 由官方 `settings` 服务投影成表单，字段描述即用户看到的帮助文案（因为目前不计划单独写表单渲染）。
 

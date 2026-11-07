@@ -27,7 +27,7 @@ mutate() {
     FAILED=1; rm -rf "$dir"; return
   fi
 
-  out=$(cd "$dir" && node --test --test-timeout=20000 test/provider.test.mjs 2>&1)
+  out=$(cd "$dir" && node --test --test-timeout=20000 test/provider.test.mjs test/probe.test.mjs test/cli.test.mjs 2>&1)
   if printf '%s' "$out" | grep -q "fail [1-9]"; then
     echo "✔ $name → 变红：$expect"
   else
@@ -56,6 +56,16 @@ mutate "不收集消息分片" lib/acp.js \
   "      if (update.sessionUpdate === 'agent_message_chunk' && update.content?.type === 'text') {" \
   "      if (false) {" \
   "「成功回答」用例"
+
+mutate "空引号当密钥" lib/cli.js \
+  "  return value === undefined || value === '' ? undefined : value;" \
+  "  return value;" \
+  "「空值不当密钥」用例"
+
+mutate "不解析账号名" lib/cli.js \
+  "  if (name) result.account = name[1];" \
+  "  if (false) result.account = name[1];" \
+  "「账号名」用例"
 
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \

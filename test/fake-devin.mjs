@@ -13,6 +13,26 @@
  */
 const scenario = process.env.FAKE_SCENARIO ?? 'success';
 const argv = process.argv.slice(2);
+
+// CLI 面（非 ACP）：给探测提供一个确定的账号与凭据文件位置。
+if (argv[0] === 'auth') {
+  process.stdout.write([
+    'Logged in (via Devin).',
+    '',
+    'Credentials:',
+    '  File:              /nonexistent/fake-devin-credentials.toml',
+    '',
+    'User:',
+    '  Name:              Fake Account',
+    '  Email:             fake@example.invalid',
+    '',
+  ].join('\n'));
+  process.exit(0);
+}
+if (argv[0] === 'models') {
+  process.stdout.write(JSON.stringify({ models: [] }));
+  process.exit(0);
+}
 const modelIndex = argv.indexOf('--model');
 const requestedModel = modelIndex >= 0 ? argv[modelIndex + 1] : undefined;
 

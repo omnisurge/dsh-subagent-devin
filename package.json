@@ -36,7 +36,7 @@
     "@deepseek-ai/cordis": "^4.0.1"
   },
   "scripts": {
-    "test": "node --test test/provider.test.mjs test/probe.test.mjs",
+    "test": "node --test test/provider.test.mjs test/probe.test.mjs test/cli.test.mjs",
     "mutations": "sh scripts/mutations.sh"
   }
 }
