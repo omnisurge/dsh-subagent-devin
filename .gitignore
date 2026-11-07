@@ -1,3 +1,6 @@
 node_modules/
 *.tgz
 .DS_Store
+
+# 设计稿/确认表等批次内工作材料，不进包也不占版本号
+.scratch/
