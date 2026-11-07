@@ -27,7 +27,7 @@ mutate() {
     FAILED=1; rm -rf "$dir"; return
   fi
 
-  out=$(cd "$dir" && node --test --test-timeout=20000 test/provider.test.mjs test/probe.test.mjs test/cli.test.mjs 2>&1)
+  out=$(cd "$dir" && node --test --test-timeout=20000 test/provider.test.mjs test/probe.test.mjs test/cli.test.mjs test/client-contract.test.mjs 2>&1)
   if printf '%s' "$out" | grep -q "fail [1-9]"; then
     echo "✔ $name → 变红：$expect"
   else
@@ -66,6 +66,11 @@ mutate "不解析账号名" lib/cli.js \
   "  if (name) result.account = name[1];" \
   "  if (false) result.account = name[1];" \
   "「账号名」用例"
+
+mutate "打开位置不去重" lib/index.js \
+  "  return typeof requested === 'number' && Number.isFinite(requested) && requested > handled;" \
+  "  return true;" \
+  "「打开位置的请求判定」用例"
 
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \

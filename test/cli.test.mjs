@@ -17,6 +17,8 @@ import {
   readCredentialFromCli,
   readCliStatus,
   resolveDevinCommand,
+  revealCommand,
+  revealCredentialLocation,
 } from '../lib/cli.js';
 
 const FAKE = fileURLToPath(new URL('./fake-devin.mjs', import.meta.url));
@@ -134,4 +136,50 @@ test('命令解析：留空时自动发现（本机应指到 Devin 桌面版自�
   assert.match(resolved.command, /devin$/);
   assert.equal(resolved.missing, undefined);
   assert.ok(resolved.command.includes('Devin'), '本机应解析到 Devin 桌面版内的 CLI');
+});
+
+test('打开位置的系统命令按平台给：macOS 选中文件、Windows 选中文件、Linux 开目录', () => {
+  assert.deepEqual(revealCommand('darwin', '/Users/a/.local/share/devin/credentials.toml'),
+    { command: 'open', args: ['-R', '/Users/a/.local/share/devin/credentials.toml'] });
+  assert.deepEqual(revealCommand('win32', 'C:\\a\\credentials.toml'),
+    { command: 'explorer', args: ['/select,C:\\a\\credentials.toml'] });
+  assert.deepEqual(revealCommand('linux', '/home/a/.local/share/devin/credentials.toml'),
+    { command: 'xdg-open', args: ['/home/a/.local/share/devin'] });
+});
+
+test('打开位置：命中文件时只定位不打开，且不把内容读出来', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'devin-reveal-'));
+  const file = join(dir, 'credentials.toml');
+  const calls = [];
+  try {
+    await writeFile(file, 'windsurf_api_key = "devin-secret"\n', { mode: 0o600 });
+    const result = await revealCredentialLocation(FAKE, {
+      platform: 'darwin',
+      candidates: [file],
+      open: async (reveal) => { calls.push(reveal); },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.path, file);
+    assert.deepEqual(calls, [{ command: 'open', args: ['-R', file] }], '只定位文件，不打开它');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('打开位置：文件还没生成时给出原因，不假装成功', async () => {
+  const result = await revealCredentialLocation(FAKE, {
+    platform: 'darwin',
+    candidates: ['/nonexistent-dir/credentials.toml'],
+    open: async () => { throw new Error('不该被调用'); },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'no-credential-location');
+});
+
+test('打开位置的请求判定：只处理新请求，重载不重复弹', async () => {
+  const { shouldReveal } = await import('../lib/index.js');
+  assert.equal(shouldReveal(1700000000000, 0), true, '新请求要处理');
+  assert.equal(shouldReveal(1700000000000, 1700000000000), false, '处理过就不再弹');
+  assert.equal(shouldReveal(5, 9), false, '计数回退时不能重复弹');
+  assert.equal(shouldReveal(undefined, 0), false, '没有请求时不动');
 });

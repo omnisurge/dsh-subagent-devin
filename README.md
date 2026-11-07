@@ -46,6 +46,8 @@ Devin 有两个长得很像但互不通用的密钥面：
 | `permission` | `allow` | 权限请求自动答复：`allow` 可改文件，`reject` 一律拒绝 |
 | `credentialRef` | `WINDSURF_API_KEY` | 凭据引用名；密钥本身不进配置 |
 | `importFromCli` | `true` | 库里没密钥时，从本机 Devin CLI 的登录凭据导入一次 |
+| `revealToken` / `lastRevealToken` | `0` / `0` | 页面请求「打开凭据文件位置」的计数与已处理计数；插件重载不会重复弹出 |
+| `command` | `''` | 留空自动发现：PATH → 各平台常见安装位置 |
 | `requestTimeoutMs` | 600000 | 单次运行上限 |
 | `disposeEofGraceMs` / `disposeGraceMs` | 6000 / 3000 | 释放阶梯宽限 |
 
@@ -65,7 +67,7 @@ node --test test/provider.test.mjs   # G1
 |---|---|
 | Host provider + 工具行 | 已实现，G1 13 例通过（含变异撤回验证） |
 | 真实 turn | 未验（需要授权的一次真实调用） |
-| 设置页（密钥/模型/权限） | 已实现并在真实客户端注册成功（`settings.section` → `devin-subagent`）；页面交互未验 |
+| 设置页（三态：未连接/检测中/已连接） | 已在真实客户端注册；**新界面未在真实客户端加载过**，等应用重启后验收 |
 | 模式（Ask/Plan/Bypass） | 未实现：`session/set_config_option` 的形态未实测 |
 
 契约与决定：`docs/specs/devin-subagent.md`、`docs/adr/ADR-001-provider-and-settings-page.md`。

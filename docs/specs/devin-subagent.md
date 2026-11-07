@@ -39,7 +39,9 @@
 | `command` | string | App 自带二进制绝对路径 | 找不到时给出可读错误，不回落到 PATH 猜测 |
 | `model` | string \| null | `null`（跟随账号默认，实测为 `swe-2-flash-medium`） | 只允许来自探测列表的值；非法值不写入 |
 | `refreshToken` | number | 0 | 页面递增它来要求重新检查连接 |
-| `probe` | 对象（volatile） | 空 | 由插件写入的连接检查结果（模型列表、是否登录、时间、错误） |
+| `revealToken` | number | 0 | 页面递增它来要求打开凭据文件所在位置 |
+| `lastRevealToken` | number（volatile） | 0 | 已处理的打开请求；`revealToken > lastRevealToken` 才执行 |
+| `probe` | 对象（volatile） | 空 | 由插件写入的连接检查结果：`at/account/source/command/credentialPath/keyPrefix/revealReason/reason/loosePermissions/ok/models/current/authenticated/error`。**只放机器可读事实，不放成品句子** |
 | `mode` | — | 会话默认 `accept-edits` | **M1 不提供**：`session/set_config_option` 的形态未实测，先不暴露一个可能无声失效的开关 |
 | `permission` | `'reject' \| 'allow'` | `allow` | ACP 权限请求的自动答复；`allow` = 子代理可直接改文件，无 DSH 审批闸门 |
 | `credentialRef` | string | `WINDSURF_API_KEY` | 凭据引用名，**不是**密钥本身 |
