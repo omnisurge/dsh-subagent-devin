@@ -107,6 +107,16 @@ mutate "没结果时冒充未连接" lib/client.js \
   "      const checking = busy === 'check';" \
   "「明说在检查」用例"
 
+mutate "把信封当裸值读" lib/client.js \
+  "      if (answer === null || typeof answer !== 'object' || !('ok' in answer)) return answer;" \
+  "      return answer;" \
+  "「已连接态」用例"
+
+mutate "volatile 引用不解成值" lib/index.js \
+  "  if (isVolatile(value)) return plainConfig(value.get());" \
+  "  if (false) return plainConfig(value.get());" \
+  "「volatile 快照」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

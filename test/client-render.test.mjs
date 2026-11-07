@@ -13,30 +13,59 @@ import vm from 'node:vm';
 
 const SOURCE = fileURLToPath(new URL('../lib/client.js', import.meta.url));
 
-/** 极简 hooks 运行时：状态按调用顺序存在数组里，重渲染复用同一份。 */
+/**
+ * 极简 hooks 运行时：状态、回调与副作用都按调用顺序占槽位。
+ *
+ * **依赖数组要当真**：真 React 只在依赖变化时才重跑 effect。如果这里每次渲染都跑，
+ * 「页面自己轮询」这类机制就永远测不出来——上一版正是这样让「页面不自动刷新」的变异
+ * 仍然全绿。所以这里做和 React 一样的浅比较，并保证 useCallback 在依赖不变时返回同一个函数。
+ */
 function createRuntime() {
-  let states = [];
+  const hooks = [];
   let cursor = 0;
-  let effects = [];
+  let pending = [];
+
+  const sameDeps = (left, right) => {
+    if (left === undefined || right === undefined) return false;
+    if (left.length !== right.length) return false;
+    return left.every((item, index) => Object.is(item, right[index]));
+  };
+
   const React = {
     Fragment: 'Fragment',
     createElement: (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat(Infinity) }),
     useState: (initial) => {
       const index = cursor;
       cursor += 1;
-      if (!(index in states)) states[index] = initial;
-      const set = (value) => {
-        states[index] = typeof value === 'function' ? value(states[index]) : value;
-      };
-      return [states[index], set];
+      if (hooks[index] === undefined || hooks[index].kind !== 'state') {
+        hooks[index] = { kind: 'state', value: initial };
+      }
+      const slot = hooks[index];
+      const set = (next) => { slot.value = typeof next === 'function' ? next(slot.value) : next; };
+      return [slot.value, set];
     },
-    useEffect: (fn) => { effects.push(fn); },
-    useCallback: (fn) => fn,
+    useCallback: (fn, deps) => {
+      const index = cursor;
+      cursor += 1;
+      const slot = hooks[index];
+      if (slot === undefined || slot.kind !== 'callback' || !sameDeps(slot.deps, deps)) {
+        hooks[index] = { kind: 'callback', value: fn, deps };
+      }
+      return hooks[index].value;
+    },
+    useEffect: (fn, deps) => {
+      const index = cursor;
+      cursor += 1;
+      const slot = hooks[index];
+      if (slot !== undefined && slot.kind === 'effect' && sameDeps(slot.deps, deps)) return;
+      hooks[index] = { kind: 'effect', deps };
+      pending.push(fn);
+    },
   };
   return {
     React,
-    beginRender() { cursor = 0; effects = []; },
-    runEffects() { const pending = effects; effects = []; for (const fn of pending) fn(); },
+    beginRender() { cursor = 0; pending = []; },
+    runEffects() { const batch = pending; pending = []; for (const fn of batch) fn(); },
   };
 }
 
@@ -120,13 +149,19 @@ async function loadPage(ctx) {
 
 const settingsStub = (value) => ({
   describe: async () => ({ namespaces: [{ ns: 'include:subagent-devin', revision: 3, value }] }),
-  update: async () => {},
+  update: async () => ok(undefined),
 });
 const credentialsStub = (configured) => ({
   describe: async () => ({ WINDSURF_API_KEY: { configured } }),
   set: async () => {},
   unset: async () => {},
 });
+
+
+/** 官方 Remote 的返回信封：`{ok:true, value}`；业务失败是 `{ok:false, error}`。 */
+function ok(value) {
+  return { ok: true, value };
+}
 
 test('渲染冒烟：拿不到 remote 时给出可读状态，而不是崩', async () => {
   const render = await loadPage({ get: () => undefined });
@@ -250,11 +285,11 @@ test('渲染冒烟：探测结果在页面打开之后才落地时，页面会�
   let value = { credentialRef: 'WINDSURF_API_KEY', probe: {} };
   const ctx = {
     get: (key) => (key === 'remote.credentials'
-      ? { describe: async () => ({ WINDSURF_API_KEY: { configured: true } }), set: async () => {}, unset: async () => {} }
+      ? { describe: async () => ok({ WINDSURF_API_KEY: { configured: true } }), set: async () => {}, unset: async () => {} }
       : (key === 'remote.settings'
         ? {
           describe: async () => ({ namespaces: [{ ns: 'include:subagent-devin', revision: 1, value }] }),
-          update: async () => {},
+          update: async () => ok(undefined),
         }
         : undefined)),
   };
@@ -290,11 +325,11 @@ test('渲染冒烟：探测结果在页面打开之后才落地时，页面会�
 test('渲染冒烟：探测还没回来的那几秒，页面明说在检查，而不是显示未连接', async () => {
   const ctx = {
     get: (key) => (key === 'remote.credentials'
-      ? { describe: async () => ({ WINDSURF_API_KEY: { configured: false } }), set: async () => {}, unset: async () => {} }
+      ? { describe: async () => ok({ WINDSURF_API_KEY: { configured: false } }), set: async () => {}, unset: async () => {} }
       : (key === 'remote.settings'
         ? {
           describe: async () => ({ namespaces: [{ ns: 'include:subagent-devin', revision: 1, value: { credentialRef: 'WINDSURF_API_KEY' } }] }),
-          update: async () => {},
+          update: async () => ok(undefined),
         }
         : undefined)),
   };
@@ -305,4 +340,72 @@ test('渲染冒烟：探测还没回来的那几秒，页面明说在检查，�
   assert.match(text, /检测中/, '要有“正在检查”的可见回执');
   assert.match(text, /正在检查本机 Devin 的登录状态与密钥/);
   assert.equal(/未连接/.test(text), false, '还没查完就不能说未连接');
+});
+
+test('渲染冒烟：命名空间 id 不按预期时，靠“值里有 probe”认出来', async () => {
+  // 官方 describe 返回的是只含 volatile 字段的表单视图，ns 来自行 id。
+  // 行 id 与安装方式有关，所以认不靠名字，而靠这个界面自己的形状指纹。
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? { describe: async () => ok({ WINDSURF_API_KEY: { configured: true } }), set: async () => {}, unset: async () => {} }
+      : (key === 'remote.settings'
+        ? {
+          describe: async () => ({
+            namespaces: [
+              { ns: 'some-other-plugin', revision: 1, value: { greeting: 'hi' } },
+              {
+                ns: 'unexpected-name-for-ours',
+                revision: 7,
+                value: { probe: { at: '2026-11-07T13:00:35.608Z', ok: true, authenticated: true, account: 'Example Account', models: [], current: 'swe-2-flash-medium', command: '/x/devin', keyPrefix: 'devin-' } },
+              },
+            ],
+          }),
+          update: async () => ok(undefined),
+        }
+        : undefined)),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const text = textOf(render().tree);
+  assert.match(text, /已连接/, '认出来了就该正常显示');
+  assert.equal(/找不到保存它的设置/.test(text), false);
+  assert.match(text, /Example Account/);
+});
+
+test('渲染冒烟：真找不到时，把实际看到的命名空间列出来', async () => {
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? { describe: async () => ok({ WINDSURF_API_KEY: { configured: false } }), set: async () => {}, unset: async () => {} }
+      : (key === 'remote.settings'
+        ? {
+          describe: async () => ({ namespaces: [{ ns: 'alpha-plugin', revision: 1, value: {} }, { ns: 'beta-plugin', revision: 2, value: {} }] }),
+          update: async () => ok(undefined),
+        }
+        : undefined)),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const text = textOf(render().tree);
+  assert.match(text, /找不到保存它的设置/, '要明确说找不到');
+  assert.match(text, /alpha-plugin/, '要把看到的命名空间列出来，便于定位');
+  assert.match(text, /beta-plugin/);
+});
+
+test('渲染冒烟：Host 明确拒绝时显示它的原话，而不是含糊说“找不到”', async () => {
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? { describe: async () => ok({ WINDSURF_API_KEY: { configured: false } }), set: async () => ok(undefined), unset: async () => ok(undefined) }
+      : {
+        describe: async () => ({ ok: false, error: { message: 'this deployment does not mount a settings provider' } }),
+        update: async () => ok(undefined),
+      }),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const text = textOf(render().tree);
+  assert.match(text, /this deployment does not mount a settings provider/, 'Host 的原话要透给用户');
+  assert.equal(/找不到保存它的设置/.test(text), false, '这是读取失败，不是“没有那一行”');
 });

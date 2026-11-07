@@ -44,3 +44,28 @@
 - **页面轮询触发**：让 Host 定时看配置变化，等于常驻轮询；插件禁用后依然在跑。
 - **把动作塞进 `probe` 字段**：把「请求」和「结果」混在同一个对象里，语义混乱，且每次
   探测都会覆盖它。
+
+## 补充（2026-11-07 实测）：Remote 方法的返回是信封，不是裸值
+
+同一天排查「页面所有状态都不对」时确认的契约事实，直接影响本页的每一条读取：
+
+`ctx.remote.<ns>.<method>(...)` 的返回值是
+
+```js
+{ ok: true, value: <业务值> }          // 成功
+{ ok: false, error: { message, code } } // 失败
+```
+
+不是裸业务值。当初把 `settings.describe()` 当裸值读 `.namespaces`、把
+`credentials.describe([ref])` 当裸值读 `[ref]`，两者都得到 `undefined`，于是页面同时
+把「读到了」误判成「没有这一行配置」和「没有密钥」——一个是红字报错，一个是「未连接」。
+写路径同样：`settings.update`、`credentials.set` 失败时不会抛异常，只回 `ok:false`，
+不拆封就会把写入失败当成成功。
+
+**决策**：调用点统一经 `unwrap(answer)` 拆封；`ok:false` 时抛出带 Host `error.message`
+的错误，由页面按「保存失败 / 检查失败 + 原话」显示。测试夹具一律按信封形状造数据
+（`ok({...})`），并有变异「把信封当裸值读」验证这条路径有牙。
+
+依据：官方 Client 的实现 `settings-mirror.ts` 中用 `response.ok ? response.value :
+response.error.message` 消费同一个接口；`packages/api/settings-controller/src/credentials.ts`
+的 `@Remote` 方法返回业务对象，信封由 typert 传输层加上。

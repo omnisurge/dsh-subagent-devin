@@ -8,8 +8,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createVolatile } from '@deepseek-ai/cosmokit';
 
-import { apply, Config } from '../lib/index.js';
+import { apply, Config, plainConfig, shouldReveal } from '../lib/index.js';
 import { childEnvironment } from '../lib/acp.js';
 
 const FAKE = fileURLToPath(new URL('./fake-devin.mjs', import.meta.url));
@@ -239,10 +240,27 @@ test('子进程环境：父凭据形状被擦掉，显式传入的密钥保留',
 });
 
 test('配置面：默认值与文档一致，且默认命令是应用自带路径', () => {
-  const resolved = Config(baseConfig());
-  assert.equal(Config({}).command, '', '命令默认留空，交给平台解析器发现');
-  assert.equal(Config({}).permission, 'allow');
-  assert.equal(Config({}).credentialRef, 'WINDSURF_API_KEY');
+  // volatile 字段在运行时时引用对象，比较前必须解成普通值（也就是插件运行时的做法）。
+  const resolved = plainConfig(Config(baseConfig()));
+  const defaults = plainConfig(Config({}));
+  assert.equal(defaults.command, '', '命令默认留空，交给平台解析器发现');
+  assert.equal(defaults.permission, 'allow');
+  assert.equal(defaults.credentialRef, 'WINDSURF_API_KEY');
   assert.equal(resolved.model, '');
   assert.throws(() => Config({ permission: 'maybe' }));
+});
+
+test('volatile 快照：设置页改过的模型与权限，下一次运行就生效', () => {
+  const live = {
+    model: createVolatile('swe-1-6-slow'),
+    permission: createVolatile('reject'),
+    lastRevealToken: createVolatile(7),
+    revealToken: 9,
+  };
+  const snapshot = plainConfig(live);
+  assert.equal(snapshot.model, 'swe-1-6-slow', '引用对象要解成值，否则传到后端的是对象');
+  assert.equal(snapshot.permission, 'reject');
+  assert.equal(snapshot.lastRevealToken, 7);
+  // 打开位置的判定依赖这两个数：不解引用时 9 > {…} 恒为假，按钮就永远没反应。
+  assert.equal(shouldReveal(snapshot.revealToken, snapshot.lastRevealToken), true);
 });

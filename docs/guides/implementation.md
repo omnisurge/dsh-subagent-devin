@@ -38,6 +38,36 @@
 `KEY|PASSWORD|SECRET|TOKEN` 的、以及所有 `DSH_*`，都不会带进子进程。这样父进程里的
 其它凭据不会被顺走。
 
+## volatile 字段在运行时是引用对象
+
+`model`、`permission`、`probe`、`lastRevealToken` 声明为 volatile——设置页要能读到当前值
+并就地改。代价是**运行时它们不是值，而是宿主维护的引用对象**（带 `.get()`）：
+
+```js
+config.model            // { get: f, [Symbol]: f }
+config.lastRevealToken  // { get: f, … }，不是 0
+```
+
+所以 `revealToken > lastRevealToken` 恒为假，`config.model.trim()` 会直接抛。
+插件的做法是**每个操作开始时取一份普通值快照**（`plainConfig(config)`），之后只用快照：
+
+```js
+start: (request) => startRun(ctx, plainConfig(config), request, activeSessions)
+```
+
+普通字段（`command`、`refreshToken`、`revealToken`…）不受影响。非 volatile 的字段
+不会出现在设置页的表单视图里——所以“页面上要显示且能改”的字段必须是 volatile，
+反过来想让某字段从页面消失、只做高级配置，就不要标 volatile。
+
+## 读设置时先拆信封
+
+`ctx.remote.settings.describe()` / `ctx.remote.credentials.describe([ref])` 返回的是
+`{ok, value}` 信封，**不是裸值**。当裸值读会得到 `undefined`，页面就会把「读到了」
+显示成「没有这一行配置」或「没有密钥」，而且写失败也不会抛异常（只回 `ok:false`）。
+
+本插件的做法：所有远端调用经 `unwrap()` 拆封，`ok:false` 抛带 Host 原话的错误；
+测试夹具按信封造数据，另有变异「把信封当裸值读」保证这条路径不会退化。
+
 ## 页面的四种可见状态
 
 | 看到什么 | 意味着 |
