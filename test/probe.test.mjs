@@ -29,11 +29,13 @@ test('探测：认证被拒时如实说明，不把空列表当成功', async ()
   assert.equal(result.ok, true, '进程起来了就算检查到了后端');
   assert.equal(result.authenticated, false);
   assert.deepEqual(result.models, [], '认证失败时后端不提供模型列表');
-  assert.match(result.error, /invalid api key/);
+  assert.equal(result.reason, 'auth-failed', '给原因码，不给成品句子');
+  assert.match(result.error, /invalid api key/, '原始诊断另存，供开发者排查');
 });
 
 test('探测：可执行文件不存在时给出可读原因，而不是抛栈', async () => {
   const result = await probeDevin({ command: '/nonexistent/devin-binary', apiKey: 'x' });
   assert.equal(result.ok, false);
-  assert.match(result.error, /Devin CLI|ENOENT/);
+  assert.equal(result.reason, 'cli-not-runnable');
+  assert.match(result.error, /ENOENT|spawn/i);
 });

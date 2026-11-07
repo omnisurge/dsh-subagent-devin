@@ -65,9 +65,10 @@ test('从 CLI 导入：读到密钥，并报出偏宽的文件权限', async () 
   }
 });
 
-test('从 CLI 导入：候选都不存在时返回 undefined，不抛', async () => {
+test('从 CLI 导入：候选都不存在时给出原因码，不抛', async () => {
   const found = await readCredentialFromCli(FAKE, { candidates: ['/nonexistent/credentials.toml'] });
-  assert.equal(found, undefined);
+  assert.equal(found.value, undefined);
+  assert.equal(found.reason, 'cli-no-key');
 });
 
 test('读 CLI 状态：真二进制之外的路径不会假装登录', async () => {
