@@ -50,6 +50,14 @@
 
 `lastRevealToken` 用来保证同一次请求只执行一次：只有 `revealToken > lastRevealToken` 才动作。
 
+## 插件页的「简介」从哪来
+
+插件页的详情文档由官方 `pluginManager.readBundleDetail` 读取：先看 `locale/<语言>.json` 的
+`meta.detail` 命名的 Markdown（相对包根，语言链最后一定回落到 `en`），**没有才回退到 README**。
+所以 README 会被整段当成简介渲染——想控制简介就写 `meta.detail`，别指望 README 短一点了事。
+
+当前两个语言各自指向 `docs/intro.zh.md` / `docs/intro.en.md`。
+
 ## 为什么不用 ACP 自带的浏览器认证
 
 `devin acp` 支持 `authenticate{methodId: "devin-browser"}`，但**每调用一次就弹一个浏览器窗口**

@@ -9,6 +9,7 @@
 | [`guides/`](guides/implementation.md) | **怎么做**：实现说明、配置、排查、开发与测试 | 使用者、开发 |
 | [`evidence/`](evidence/measured-20261107.md) | 某天在真机上量到的事实与复现命令 | 开发、审查 |
 | [`design/`](design/settings-page.svg) | 已确认的界面设计稿（可视设计，不是文案） | 设计确认 |
+| `intro.zh.md` / `intro.en.md` | 插件页「简介」显示的短文（由 locale 的 `meta.detail` 指过来） | 安装前的用户 |
 
 ## 按需求找
 

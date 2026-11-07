@@ -97,6 +97,11 @@ mutate "认证失败都算握手失败" lib/probe.js \
   "        : 'handshake-failed'," \
   "「开会话时密钥被拒」用例"
 
+mutate "页面不自动刷新" lib/client.js \
+  "        const timer = setInterval(() => { void load(); }, 2000);" \
+  "        const timer = 0;" \
+  "「页面会自己刷新过来」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

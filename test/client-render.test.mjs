@@ -57,12 +57,16 @@ async function loadPage(ctx) {
   const source = await readFile(SOURCE, 'utf8');
   let definition;
   const clipboard = [];
+  const intervals = [];
   const sandbox = {
     window: { __ModuleLoader__: { load: (value) => { definition = value; } } },
     navigator: { clipboard: { writeText: async (text) => { clipboard.push(text); } } },
     console,
     setTimeout,
     clearTimeout,
+    // 页面用一个 2 秒的轮询等探测结果；这里只记录回调，由测试自己拨表。
+    setInterval: (fn) => { intervals.push(fn); return intervals.length; },
+    clearInterval: () => {},
   };
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox);
@@ -106,6 +110,11 @@ async function loadPage(ctx) {
     return { tree, runtime };
   };
   render.clipboard = clipboard;
+  /** 拨一次表：触发页面注册的后台刷新。 */
+  render.tick = async () => {
+    for (const fn of intervals) fn();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  };
   return render;
 }
 
@@ -233,4 +242,47 @@ test('渲染冒烟：命令块显示的文字与复制按钮复制的内容完�
   assert.equal(render.clipboard.length, 1);
   assert.equal(render.clipboard[0], textOf(codeNode).trim(), '复制的内容必须与屏幕上显示的一字不差');
   assert.match(render.clipboard[0], /^"\/Applications\/Devin\.app\/x\/devin" auth login$/);
+});
+
+test('渲染冒烟：探测结果在页面打开之后才落地时，页面会自己刷新过来', async () => {
+  // 真机现场：页面挂载时探测还没跑完（要起子进程、握手，通常 3~10 秒），
+  // 页面如果不自己刷新，就会永远停在那一瞬间的快照上，看着像所有设置都没生效。
+  let value = { credentialRef: 'WINDSURF_API_KEY', probe: {} };
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? { describe: async () => ({ WINDSURF_API_KEY: { configured: true } }), set: async () => {}, unset: async () => {} }
+      : (key === 'remote.settings'
+        ? {
+          describe: async () => ({ namespaces: [{ ns: 'include:subagent-devin', revision: 1, value }] }),
+          update: async () => {},
+        }
+        : undefined)),
+  };
+
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.match(textOf(render().tree), /未连接/, '还没探测完时应显示未连接');
+
+  // 探测写完了：换成已连接的数据，拨一次表（模拟 2 秒后页面自己重读）
+  value = {
+    credentialRef: 'WINDSURF_API_KEY',
+    model: '',
+    permission: 'allow',
+    probe: {
+      ok: true,
+      authenticated: true,
+      at: '2026-11-07T11:41:33.443Z',
+      account: 'Example Account',
+      source: 'cli',
+      keyPrefix: 'devin-',
+      command: '/x/devin',
+      models: [{ value: 'swe-2-flash-medium', name: 'SWE-2 Flash Medium' }],
+      current: 'swe-2-flash-medium',
+    },
+  };
+  await render.tick();
+  const text = textOf(render().tree);
+  assert.match(text, /已连接/, '后落地的探测结果要能自己显示出来，不用用户手动点');
+  assert.match(text, /Example Account/);
 });

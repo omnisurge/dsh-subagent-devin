@@ -1,6 +1,7 @@
 {
   "meta": {
     "title": "Devin subagent",
-    "description": "Runs a task in Devin and returns its answer to this session."
+    "description": "Runs a task in Devin and returns its answer to this session.",
+    "detail": "docs/intro.en.md"
   }
 }
