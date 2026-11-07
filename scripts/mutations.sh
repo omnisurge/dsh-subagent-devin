@@ -77,6 +77,11 @@ mutate "页面永远显示未连接" lib/client.js \
   "      const connected = false;" \
   "「已连接态」渲染用例"
 
+mutate "CLI 的 stdin 接成管道" lib/cli.js \
+  "      child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });" \
+  "      child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] });" \
+  "stdin 必须接成 /dev/null"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

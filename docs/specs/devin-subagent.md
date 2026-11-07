@@ -87,9 +87,9 @@ Windows 路径用反斜杠自行拼接（`path.join` 用本机分隔符，跨平
 | 门槛 | 证据 | 状态 |
 |---|---|---|
 | G0 契约与范围 | 本文件 + ADR-001 + 实测记录 | 已完成 |
-| G1 单元 | `test/provider.test.mjs` 13 例通过；4 个变异（权限写死、跳过凭据检查、不传 `--model`、不收集分片）均按预期变红 | 已完成 |
+| G1 单元 | 5 个测试文件共 40 例通过（provider / probe / cli / 页面契约 / 页面渲染冒烟）；10 个变异均按预期变红（含 CLI stdin、打开位置去重、页面永远显示未连接） | 已完成 |
 | G3 实际产物 | 待写（`npm pack` 后核 `files`） | 未开始 |
-| G4 Client 链路 | `lib/client.js` 已注册 `settings.section`；**未在真实客户端加载过** | 未验 |
+| G4 Client 链路 | `lib/client.js` 已注册 `settings.section`，真实客户端出现过该分区；**三态新界面未在真实客户端加载过** | 未验 |
 | G5 原生路径 | 待跑 | 未验 |
 | G6 平台/账号 | 真实 turn 已验 2 次（认证/key/模型），provider 内路径未验 | 部分 |
 
@@ -98,4 +98,8 @@ Windows 路径用反斜杠自行拼接（`path.join` 用本机分隔符，跨平
 1. **密钥**：官方 `ctx.remote.credentials.{describe,set,unset}` 命名空间已存在，页面直接用，不自造 RPC。
 2. **模型/权限**：官方 `ctx.remote.{describe,update,replace,mutate}` 按插件 Config 的 ns 读写，带 revision/CAS。
 3. **测试连接/模型发现**：本仓已装的套件就是先例——profile 里的三方 bundle 可以 import 官方运行时包（`@deepseek-ai/dsh-tool-subagent`、`@deepseek-ai/schemastery`、`@deepseek-ai/dsh-typert-protocol`），并用 typert 协议声明自己的 `remote.<ns>`。M2 走同一条路，不发明第二条 RPC。
-4. **未验**：`@Remote` 装饰器需要 typert 编译产物（`createTypertRemoteInfo`）；手写 spec 能否被 Gateway 接受，M2 开工时先做最小验证，失败则退回「Host 在 apply 时探测并把结果写进 volatile Config 字段」。
+4. **已定的做法**：不引 typert 生成链，改为「配置计数 + 行重载」——页面递增 `refreshToken` / `revealToken`，插件行重载时执行并把结果写回 volatile `probe`。决定与代价见 [ADR-002](../adr/ADR-002-page-host-channel.md)。
+5. **未验**：`@Remote` 装饰器那条路（需要 typert 编译产物）没有试；如果将来需要真正的双向 RPC 再评估。
+
+说明文档分工：怎么做见 [`docs/guides/`](../guides/implementation.md)，实测事实见
+[`docs/evidence/measured-20261107.md`](../evidence/measured-20261107.md)。本文件只写「必须是什么」。

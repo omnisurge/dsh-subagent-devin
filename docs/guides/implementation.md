@@ -1,0 +1,62 @@
+# 实现说明
+
+这里讲**怎么实现的**；契约要求见 [SPEC](../specs/devin-subagent.md)，历史决定见 [ADR-001](../adr/ADR-001-provider-and-settings-page.md)。
+
+## 组件
+
+```
+会话 → subagent_devin 工具（官方 tool-subagent 行，provider: devin）
+        → 本插件 provider（ctx.subagents.registerProvider）
+          → 子进程 `devin acp`（ndjson JSON-RPC）
+```
+
+插件只有两个 Host 行：provider 行与本插件，以及一个官方工具行。设置页是 Client 半，单独加载。
+
+## 一次运行
+
+1. 从请求里取纯文本；空文本直接拒绝（`DEVIN_EMPTY_PROMPT`），不开进程。
+2. 按引用从凭据服务解析密钥；解析不到就不启动，错误码区分「没有凭据服务」「没有值」「值为空」。
+3. 起 `devin acp` 子进程，密钥通过环境变量 `WINDSURF_API_KEY` 传给子进程。
+4. ACP 握手：`initialize` → `session/new`（`cwd` 为本次子代理目录）。
+5. 需要指定模型时补一条会话配置（`--model` 也会传，双重保证）。
+6. `session/prompt` 发任务文本，收集流式分片；`stopReason` 映射到结果（`cancelled` → `aborted`）。
+7. 结束或取消时走释放阶梯：`session/cancel` → 关 stdin → SIGTERM → SIGKILL，每一档有宽限毫秒数。
+
+## 密钥从哪来
+
+解析顺序只有一条：**凭据服务**。库里没有时，启动阶段会尝试从本机 CLI 的登录凭据导入一次
+（`devin auth status` 报出凭据文件位置 → 读 `windsurf_api_key` → 写入凭据服务）。
+
+- 密钥值只在 Host 内存里过一手，不返回给页面、不进日志、不进错误消息。
+- 已有值不会被覆盖；`importFromCli: false` 可关。
+- 页面手工粘贴的密钥写进**同一个**凭据引用，所以两条来源不会打架。
+
+## 环境变量清洗
+
+子进程环境 = 父进程清洗后的环境 + 插件需要的两项。凡是变量名匹配
+`KEY|PASSWORD|SECRET|TOKEN` 的、以及所有 `DSH_*`，都不会带进子进程。这样父进程里的
+其它凭据不会被顺走。
+
+## 设置页与 Host 之间怎么通信
+
+页面调不到 Host 方法（那需要 typert 代码生成链，本仓刻意不引），所以走**配置字段 + 行重载**：
+
+| 动作 | 机制 | 代价 |
+|---|---|---|
+| 重新检测 | 页面递增 `refreshToken` → 插件行重载 → 启动时探测 → 结果写回 `probe` → 页面轮询到变化 | 界面闪一下 |
+| 打开凭据位置 | 页面递增 `revealToken` → 行重载 → 启动时执行系统命令定位文件 | 同上 |
+| 保存/替换密钥 | 直接调官方 `remote.credentials.set`，不走重载 | 无 |
+
+`lastRevealToken` 用来保证同一次请求只执行一次：只有 `revealToken > lastRevealToken` 才动作。
+
+## 为什么不用 ACP 自带的浏览器认证
+
+`devin acp` 支持 `authenticate{methodId: "devin-browser"}`，但**每调用一次就弹一个浏览器窗口**
+（实测一轮弹出 5～7 个）。所以运行时不认证浏览器，只认环境变量里的密钥，见
+[实测记录](../evidence/measured-20261107.md)。
+
+## 模型
+
+- 默认 `swe-2-flash-medium`；免费账号只开放 `swe-2-flash-medium` 与 `swe-1-6-slow`。
+- 未认证时后端给的 `currentValue` 是占位值，`options` 为空——所以可用模型列表必须**认证之后**才拿。
+- 写错或未授权的模型名会被 Devin **静默换成默认模型**，因此插件在事后比对「请求的模型 vs 实际模型」，不一致时写日志。

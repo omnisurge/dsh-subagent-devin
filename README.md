@@ -1,73 +1,42 @@
-# Devin 子代理（DSH 插件）
+# Devin 子代理
 
 把 Devin 接成 DeepSeek Harness 的子代理：当前会话把任务交给 Devin 执行，结果回到会话里。
 
-- 不弹浏览器窗口、不需要 `devin auth login` 作为运行前提；
-- 密钥只存在官方凭据服务里，插件配置只保存**引用名**；
-- 模型可指定，实际采用的模型会记进日志（Devin 会把写错的名字静默换成默认模型）。
+## 怎么用
 
-## 怎么工作
+1. **设置 → Devin 子代理**，确认右上角是绿色「已连接」。
+2. 显示「未连接」时，按页面上的命令在本机登录一次 Devin，或直接粘贴 `devin-` 开头的密钥；然后点「重新检测」。
+3. 回到对话，让 `subagent_devin` 去做事。
 
-```
-会话 → subagent_devin 工具 → 本插件 provider → 子进程 `devin acp`
-                                              ├ initialize
-                                              ├ session/new（工作目录 = 子代理目录）
-                                              ├ session/prompt（任务文本）
-                                              └ session/cancel / 释放阶梯
-```
+第一次启动会自己检查本机 Devin 的登录状态并把密钥收进系统凭据库，通常不需要手动配置。
 
-认证走子进程环境变量 `WINDSURF_API_KEY`，值在每次运行前从凭据服务解析；父进程里任何
-`KEY|PASSWORD|SECRET|TOKEN` 形状的变量都不会带进子进程。
+## 密钥
 
-## 密钥从哪来
+- 页面**不回显**密钥，配置里只存引用名，值只存在系统凭据库。
+- 只有 `devin-` 开头的 CLI 密钥可用；`apk_user_` 开头的是 Devin 平台接口密钥，不能用来登录子代理。
+- 「打开凭据文件位置」会定位到 `credentials.toml`，方便你自己复制。
 
-Devin 有两个长得很像但互不通用的密钥面：
+## 常用设置
 
-| 前缀 | 来源 | 能用吗 |
+| 设置 | 默认 | 说明 |
 |---|---|---|
-| `devin-…`（189 字符） | 本机 CLI 登录后写进 `~/.local/share/devin/credentials.toml` 的 `windsurf_api_key` | **能用**（实测跑通过一轮） |
-| `apk_user_…` | Devin 平台「API keys (legacy)」页，给第三方调 REST API | CLI 二进制里连 `apk_` 这个前缀都没有，不能用作 ACP 凭据 |
+| 模型 | 跟随账号默认 | 写错的名字会被 Devin 静默换成默认模型，所以列表只给可选值 |
+| 子代理权限 | 允许改文件 | 选「只读」时 Devin 的写入请求会被拒绝 |
 
-插件默认**自动导入**：启动时如果凭据库里还没有 `WINDSURF_API_KEY`，就通过
-`devin auth status` 找到凭据文件、取出 `windsurf_api_key`、写进官方凭据服务。
-密钥只在 Host 内存里过一手，不到页面、不进日志；已有值不会被覆盖。
-关掉自动导入：配置项 `importFromCli: false`。
+## 出问题
 
-也可以在设置页手工粘贴——两条路写进同一个凭据引用。
+- **改了设置没生效 / 按钮点了没反应**：应用重启后才会加载新版本插件。
+- **一直显示「未连接」**：先在本机终端运行一次页面上的登录命令。
+- **提示密钥没有被接受**：用的是不是 `devin-` 开头的那把？
 
-## 配置
+## 更多
 
-配置在插件行里（`cordis.patch.yml`），字段见 `lib/index.js` 的 `Config`：
-
-| 字段 | 默认 | 说明 |
-|---|---|---|
-| `command` | Devin 应用自带路径 | CLI 绝对路径，不猜 PATH |
-| `model` | 空（跟随账号默认） | 例如 `swe-2-flash-medium`、`swe-1-6-slow` |
-| `permission` | `allow` | 权限请求自动答复：`allow` 可改文件，`reject` 一律拒绝 |
-| `credentialRef` | `WINDSURF_API_KEY` | 凭据引用名；密钥本身不进配置 |
-| `importFromCli` | `true` | 库里没密钥时，从本机 Devin CLI 的登录凭据导入一次 |
-| `revealToken` / `lastRevealToken` | `0` / `0` | 页面请求「打开凭据文件位置」的计数与已处理计数；插件重载不会重复弹出 |
-| `command` | `''` | 留空自动发现：PATH → 各平台常见安装位置 |
-| `requestTimeoutMs` | 600000 | 单次运行上限 |
-| `disposeEofGraceMs` / `disposeGraceMs` | 6000 / 3000 | 释放阶梯宽限 |
-
-## 安装（开发期）
-
-```sh
-sh scripts/link-dev-deps.sh          # 只为本地跑测试
-node --test test/provider.test.mjs   # G1
-```
-
-装进 profile 用 DSH 的官方插件安装入口指向本目录（`install_bundle`），不要手写 profile
-的 `package.json` 或 `cordis.patch.yml`。
-
-## 状态
-
-| 项 | 状态 |
+| 文档 | 内容 |
 |---|---|
-| Host provider + 工具行 | 已实现，G1 13 例通过（含变异撤回验证） |
-| 真实 turn | 未验（需要授权的一次真实调用） |
-| 设置页（三态：未连接/检测中/已连接） | 已在真实客户端注册；**新界面未在真实客户端加载过**，等应用重启后验收 |
-| 模式（Ask/Plan/Bypass） | 未实现：`session/set_config_option` 的形态未实测 |
-
-契约与决定：`docs/specs/devin-subagent.md`、`docs/adr/ADR-001-provider-and-settings-page.md`。
+| [使用与配置](docs/guides/configuration.md) | 全部配置项，含哪些字段不要手改 |
+| [实现说明](docs/guides/implementation.md) | 一次运行怎么走、密钥怎么取、怎么释放 |
+| [排查指南](docs/guides/troubleshooting.md) | 状态码、常见症状、诊断命令 |
+| [开发与测试](docs/guides/development.md) | 本地测试、变异门禁、安装方式 |
+| [插件契约](docs/specs/devin-subagent.md) | 身份表、失败语义、验收门槛 |
+| [决策记录](docs/adr/ADR-001-provider-and-settings-page.md) | 为什么这样接，以及被否掉的方案（[002](docs/adr/ADR-002-page-host-channel.md)：页面怎么触发 Host 动作） |
+| [实测记录](docs/evidence/measured-20261107.md) | 当时在真机上量到的事实 |

@@ -1,133 +1,158 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="760" viewBox="0 0 1180 760" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif">
-  <!--
-    配色与几何取自已实现套件 tokens.ts / styles.ts（数值为该 token 在浅色主题下的解析值）：
-      label-primary   #0f1115   文字与主按钮底
-      label-secondary #61666b   次要文字、次按钮文字
-      label-tertiary  #81858c   提示文字、占位符、悬停描边
-      border          rgba(0,0,0,0.10)  卡片与输入描边（border-l2）
-      bg-muted        #f5f6f7   禁用与静态底（bg-module-platform）
-      状态色          成功 #22c55e / 警示 #f59e0b / 错误 #ec1313
-      几何            控件高 34、圆角 8、输入左内边距 12、按钮内边距 14、卡片头 14/16
-  -->
-  <rect width="1180" height="760" fill="#f5f6f7"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="880" viewBox="0 0 1240 880" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
+  <title>Devin 子代理 设置页 v3 — 三种状态</title>
+  <desc>连接卡包含：终端登录命令（显示短命令，复制时带完整路径）、手工密钥输入、打开凭据文件位置、重新检测。已连接后密钥区收起为一行事实加两个文字动作。</desc>
 
-  <!-- ================= Frame A：首次进入（未配置） ================= -->
-  <g transform="translate(24,24)">
-    <text x="0" y="14" font-size="12" fill="#81858c">A · 首次进入（还没有密钥）</text>
-    <rect x="0" y="26" width="556" height="672" rx="12" fill="#ffffff" stroke="#0000001a"/>
+  <rect width="1240" height="880" fill="#f5f6f7"/>
 
-    <!-- PageHead -->
-    <text x="24" y="66" font-size="20" font-weight="600" fill="#0f1115">Devin 子代理</text>
-    <text x="24" y="90" font-size="13" fill="#61666b">把一个任务交给 Devin 执行，结果回到当前会话。</text>
+  <!-- ================= A：未登录（无密钥） ================= -->
+  <g transform="translate(24, 32)">
+    <text x="0" y="0" font-size="13" font-weight="600" fill="#61666b">A · 未登录（无密钥）</text>
+    <rect x="0" y="16" width="376" height="820" rx="12" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="24" y="60" font-size="20" font-weight="600" fill="#0f1115">Devin 子代理</text>
+    <text x="24" y="84" font-size="13" fill="#61666b">把一个任务交给 Devin 执行，结果回到当前会话。</text>
 
-    <!-- SettingsCard: 连接 -->
-    <rect x="24" y="112" width="508" height="208" rx="10" fill="#ffffff" stroke="#0000001a"/>
-    <text x="40" y="140" font-size="13" font-weight="600" fill="#0f1115">连接</text>
-    <rect x="446" y="124" width="70" height="21" rx="999" fill="#ffffff" stroke="#0000001a"/>
-    <circle cx="458" cy="134.5" r="3" fill="#81858c"/>
-    <text x="466" y="138.5" font-size="11" font-weight="500" fill="#81858c">未配置</text>
+    <rect x="24" y="104" width="328" height="452" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="132" font-size="13" font-weight="600" fill="#0f1115">连接</text>
+    <rect x="268" y="118" width="64" height="20" rx="10" fill="none" stroke="rgba(0,0,0,.16)"/>
+    <circle cx="280" cy="128" r="3" fill="#f59e0b"/>
+    <text x="288" y="132" font-size="11" fill="#61666b">未连接</text>
+    <text x="44" y="160" font-size="13" fill="#61666b">还没检测到本机 Devin 的登录凭据。</text>
 
-    <text x="40" y="170" font-size="13" fill="#61666b">API 密钥</text>
-    <rect x="40" y="180" width="300" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="52" y="202" font-size="13" fill="#81858c">粘贴 Devin 的 API key</text>
-    <rect x="352" y="180" width="56" height="34" rx="8" fill="#0f1115"/>
-    <text x="370" y="202" font-size="13" fill="#ffffff">保存</text>
-    <rect x="416" y="180" width="56" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="434" y="202" font-size="13" fill="#61666b">清除</text>
+    <text x="44" y="190" font-size="12" font-weight="600" fill="#81858c">方式一 · 用 Devin 账号登录</text>
+    <rect x="44" y="198" width="288" height="40" rx="8" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="58" y="223" font-size="13" fill="#0f1115" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">devin auth login</text>
+    <rect x="264" y="204" width="56" height="28" rx="7" fill="#ffffff" stroke="rgba(0,0,0,.12)"/>
+    <text x="292" y="223" font-size="12" fill="#0f1115" text-anchor="middle">复制</text>
+    <text x="44" y="258" font-size="12" fill="#81858c">在终端运行它；浏览器会打开登录页，完成后点</text>
+    <text x="44" y="276" font-size="12" fill="#81858c">「重新检测」。复制时会带上本机的完整路径。</text>
 
-    <text x="40" y="234" font-size="12" fill="#81858c">密钥只保存在系统凭据库里，页面不回显，也不会写进配置文件。</text>
+    <rect x="44" y="292" width="288" height="1" fill="rgba(0,0,0,.08)"/>
 
-    <rect x="40" y="248" width="92" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="56" y="270" font-size="13" fill="#81858c">测试连接</text>
-    <text x="144" y="270" font-size="12" fill="#81858c">先保存密钥，才能测试连接</text>
-    <text x="40" y="304" font-size="12" fill="#81858c">没有密钥时，模型与运行方式显示为不可编辑；子代理被调用时会直接报「还没有配置密钥」。</text>
+    <text x="44" y="318" font-size="12" font-weight="600" fill="#81858c">方式二 · 直接填写密钥</text>
+    <rect x="44" y="328" width="200" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="56" y="350" font-size="13" fill="#81858c">粘贴 devin- 开头的密钥</text>
+    <rect x="252" y="328" width="80" height="34" rx="8" fill="#0f1115"/>
+    <text x="292" y="350" font-size="13" fill="#ffffff" text-anchor="middle">保存</text>
+    <text x="44" y="380" font-size="12" fill="#81858c">密钥只存进系统凭据库，页面不回显，也不写进配置。</text>
+    <text x="44" y="400" font-size="12" fill="#81858c">apk_user_ 开头的是平台接口密钥，这里用不了。</text>
 
-    <!-- SettingsCard: 模型（禁用） -->
-    <rect x="24" y="332" width="508" height="132" rx="10" fill="#f5f6f7" stroke="#0000001a"/>
-    <text x="40" y="360" font-size="13" font-weight="600" fill="#81858c">模型</text>
-    <text x="40" y="388" font-size="13" fill="#81858c">模型</text>
-    <rect x="40" y="398" width="300" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="52" y="420" font-size="13" fill="#81858c">跟随账号默认</text>
-    <text x="40" y="450" font-size="12" fill="#81858c">可用模型来自最近一次「测试连接」的结果。</text>
+    <text x="44" y="424" font-size="12" fill="#81858c">不知道密钥在哪？</text>
+    <rect x="44" y="434" width="150" height="30" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.12)"/>
+    <text x="56" y="454" font-size="12" fill="#0f1115">打开凭据文件位置</text>
+    <text x="44" y="482" font-size="12" fill="#81858c">文件管理器会定位到 credentials.toml。</text>
 
-    <!-- SettingsCard: 运行方式（禁用） -->
-    <rect x="24" y="476" width="508" height="124" rx="10" fill="#f5f6f7" stroke="#0000001a"/>
-    <text x="40" y="504" font-size="13" font-weight="600" fill="#81858c">运行方式</text>
-    <text x="40" y="532" font-size="13" fill="#81858c">会话模式</text>
-    <rect x="40" y="542" width="236" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="52" y="564" font-size="13" fill="#81858c">Code（可改文件）</text>
-    <text x="292" y="532" font-size="13" fill="#81858c">子代理权限</text>
-    <rect x="292" y="542" width="224" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="304" y="564" font-size="13" fill="#81858c">允许改文件</text>
+    <rect x="44" y="496" width="96" height="34" rx="8" fill="#0f1115"/>
+    <text x="92" y="518" font-size="13" fill="#ffffff" text-anchor="middle">重新检测</text>
+    <text x="152" y="518" font-size="12" fill="#81858c">最近检查：从未</text>
 
-    <!-- 页脚动作 -->
-    <rect x="372" y="628" width="72" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="386" y="650" font-size="13" fill="#81858c">恢复默认</text>
-    <rect x="452" y="628" width="80" height="34" rx="8" fill="#f5f6f7" stroke="#0000001a"/>
-    <text x="472" y="650" font-size="13" fill="#81858c">保存</text>
+    <rect x="24" y="572" width="328" height="104" rx="10" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="600" font-size="13" font-weight="600" fill="#61666b">模型</text>
+    <rect x="44" y="614" width="288" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="56" y="636" font-size="13" fill="#81858c">跟随账号默认</text>
+    <text x="44" y="664" font-size="12" fill="#81858c">登录或填密钥后，可以列出这个账号可用的模型。</text>
+
+    <rect x="24" y="692" width="328" height="132" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="720" font-size="13" font-weight="600" fill="#0f1115">运行方式</text>
+    <text x="44" y="744" font-size="13" fill="#61666b">子代理权限</text>
+    <rect x="196" y="726" width="136" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="210" y="748" font-size="13" fill="#0f1115">允许改文件</text>
+    <text x="44" y="780" font-size="12" fill="#f59e0b">选「允许改文件」时不会弹审批，请确认知道后果。</text>
+    <text x="44" y="800" font-size="12" fill="#f59e0b">选「只读」时 Devin 的写入请求会被拒绝。</text>
   </g>
 
-  <!-- ================= Frame B：已配置并测试通过 ================= -->
-  <g transform="translate(600,24)">
-    <text x="0" y="14" font-size="12" fill="#81858c">B · 已保存密钥并测试连接成功</text>
-    <rect x="0" y="26" width="556" height="672" rx="12" fill="#ffffff" stroke="#0000001a"/>
+  <!-- ================= B：检测中 ================= -->
+  <g transform="translate(432, 32)">
+    <text x="0" y="0" font-size="13" font-weight="600" fill="#61666b">B · 检测中</text>
+    <rect x="0" y="16" width="376" height="820" rx="12" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="24" y="60" font-size="20" font-weight="600" fill="#0f1115">Devin 子代理</text>
+    <text x="24" y="84" font-size="13" fill="#61666b">把一个任务交给 Devin 执行，结果回到当前会话。</text>
 
-    <text x="24" y="66" font-size="20" font-weight="600" fill="#0f1115">Devin 子代理</text>
-    <text x="24" y="90" font-size="13" fill="#61666b">把一个任务交给 Devin 执行，结果回到当前会话。</text>
+    <rect x="24" y="104" width="328" height="452" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="132" font-size="13" font-weight="600" fill="#0f1115">连接</text>
+    <rect x="268" y="118" width="64" height="20" rx="10" fill="none" stroke="rgba(0,0,0,.16)"/>
+    <circle cx="280" cy="128" r="3" fill="#61666b"/>
+    <text x="288" y="132" font-size="11" fill="#61666b">检测中</text>
+    <text x="44" y="160" font-size="13" fill="#61666b">正在检查本机 Devin 的登录状态与密钥…</text>
 
-    <!-- SettingsCard: 连接 -->
-    <rect x="24" y="112" width="508" height="228" rx="10" fill="#ffffff" stroke="#0000001a"/>
-    <text x="40" y="140" font-size="13" font-weight="600" fill="#0f1115">连接</text>
-    <rect x="452" y="124" width="64" height="21" rx="999" fill="#ffffff" stroke="#81858c"/>
-    <circle cx="464" cy="134.5" r="3" fill="#0f1115"/>
-    <text x="472" y="138.5" font-size="11" font-weight="500" fill="#0f1115">已配置</text>
+    <text x="44" y="190" font-size="12" font-weight="600" fill="#81858c">方式一 · 用 Devin 账号登录</text>
+    <rect x="44" y="198" width="288" height="40" rx="8" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="58" y="223" font-size="13" fill="#81858c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">devin auth login</text>
+    <rect x="264" y="204" width="56" height="28" rx="7" fill="#f5f6f7" stroke="rgba(0,0,0,.12)"/>
+    <text x="292" y="223" font-size="12" fill="#81858c" text-anchor="middle">复制</text>
+    <text x="44" y="258" font-size="12" fill="#81858c">还没登录过？在终端运行上面这条命令。</text>
 
-    <text x="40" y="170" font-size="13" fill="#61666b">API 密钥</text>
-    <rect x="40" y="180" width="300" height="34" rx="8" fill="#f5f6f7" stroke="#0000001a"/>
-    <text x="52" y="202" font-size="13" fill="#61666b" letter-spacing="1.5">••••••••••••</text>
-    <rect x="352" y="180" width="56" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="370" y="202" font-size="13" fill="#61666b">替换</text>
-    <rect x="416" y="180" width="56" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="434" y="202" font-size="13" fill="#61666b">清除</text>
+    <rect x="44" y="292" width="288" height="1" fill="rgba(0,0,0,.08)"/>
 
-    <rect x="40" y="228" width="92" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="56" y="250" font-size="13" fill="#61666b">测试连接</text>
-    <circle cx="148" cy="245" r="3" fill="#22c55e"/>
-    <text x="158" y="249" font-size="12" fill="#61666b">Example Account · Devin Free · 2 个可用模型</text>
+    <text x="44" y="318" font-size="12" font-weight="600" fill="#81858c">方式二 · 直接填写密钥</text>
+    <rect x="44" y="328" width="200" height="34" rx="8" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="56" y="350" font-size="13" fill="#81858c">粘贴 devin- 开头的密钥</text>
+    <rect x="252" y="328" width="80" height="34" rx="8" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="292" y="350" font-size="13" fill="#81858c" text-anchor="middle">保存</text>
+    <text x="44" y="380" font-size="12" fill="#81858c">检测进行中，稍等片刻。</text>
 
-    <text x="40" y="284" font-size="12" fill="#81858c">密钥只保存在系统凭据库里，页面不回显，也不会写进配置文件。</text>
-    <text x="40" y="304" font-size="12" fill="#81858c">测试连接会真实访问 Devin（握手与认证），不产生模型调用费用。</text>
-    <text x="40" y="324" font-size="12" fill="#81858c">最近一次检查：今天 10:42</text>
+    <text x="44" y="424" font-size="12" fill="#81858c">不知道密钥在哪？</text>
+    <rect x="44" y="434" width="150" height="30" rx="8" fill="#f5f6f7" stroke="rgba(0,0,0,.12)"/>
+    <text x="56" y="454" font-size="12" fill="#81858c">打开凭据文件位置</text>
 
-    <!-- SettingsCard: 模型 -->
-    <rect x="24" y="352" width="508" height="136" rx="10" fill="#ffffff" stroke="#0000001a"/>
-    <text x="40" y="380" font-size="13" font-weight="600" fill="#0f1115">模型</text>
-    <text x="40" y="408" font-size="13" fill="#61666b">模型</text>
-    <rect x="40" y="418" width="300" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="52" y="440" font-size="13" fill="#0f1115">跟随账号默认</text>
-    <text x="156" y="440" font-size="12" fill="#81858c">当前 SWE-2 Flash Medium</text>
-    <path d="M 316 431 L 322 437 L 328 431" stroke="#81858c" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    <text x="40" y="472" font-size="12" fill="#81858c">列表来自最近一次测试连接；写错的名字会被 Devin 静默换成默认模型，所以这里只提供可选值。</text>
+    <rect x="44" y="496" width="96" height="34" rx="8" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="92" y="518" font-size="13" fill="#81858c" text-anchor="middle">检测中…</text>
+    <text x="152" y="518" font-size="12" fill="#81858c">最近检查：进行中</text>
 
-    <!-- SettingsCard: 运行方式 -->
-    <rect x="24" y="500" width="508" height="120" rx="10" fill="#ffffff" stroke="#0000001a"/>
-    <text x="40" y="528" font-size="13" font-weight="600" fill="#0f1115">运行方式</text>
-    <text x="40" y="556" font-size="13" fill="#61666b">会话模式</text>
-    <rect x="40" y="566" width="236" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="52" y="588" font-size="13" fill="#0f1115">Code（可改文件）</text>
-    <path d="M 256 579 L 262 585 L 268 579" stroke="#81858c" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    <text x="292" y="556" font-size="13" fill="#61666b">子代理权限</text>
-    <rect x="292" y="566" width="224" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="304" y="588" font-size="13" fill="#0f1115">允许改文件</text>
-    <path d="M 496 579 L 502 585 L 508 579" stroke="#81858c" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <rect x="24" y="572" width="328" height="104" rx="10" fill="#f5f6f7" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="600" font-size="13" font-weight="600" fill="#61666b">模型</text>
+    <rect x="44" y="614" width="288" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="56" y="636" font-size="13" fill="#81858c">跟随账号默认</text>
+    <text x="44" y="664" font-size="12" fill="#81858c">检测完成后可以列出这个账号可用的模型。</text>
 
-    <text x="40" y="632" font-size="12" fill="#f59e0b">⚠ 选「允许改文件」时，Devin 的改动不会弹审批；选「只读」时它的写入请求会被拒绝。</text>
-    <rect x="364" y="644" width="72" height="34" rx="8" fill="#ffffff" stroke="#0000001a"/>
-    <text x="378" y="666" font-size="13" fill="#61666b">恢复默认</text>
-    <rect x="444" y="644" width="88" height="34" rx="8" fill="#0f1115"/>
-    <text x="472" y="666" font-size="13" fill="#ffffff">保存</text>
+    <rect x="24" y="692" width="328" height="132" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="720" font-size="13" font-weight="600" fill="#0f1115">运行方式</text>
+    <text x="44" y="744" font-size="13" fill="#61666b">子代理权限</text>
+    <rect x="196" y="726" width="136" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="210" y="748" font-size="13" fill="#0f1115">允许改文件</text>
   </g>
 
-  <text x="24" y="726" font-size="12" fill="#81858c">说明：页面挂在「设置 → Devin 子代理」。密钥读写走官方凭据服务；模型与运行方式写本插件配置（带 revision，避免覆盖别处改动）。所有颜色与控件尺寸取自套件 token，未使用字面色值。</text>
-  <text x="24" y="746" font-size="12" fill="#81858c">状态色仅用于状态点与警示行：成功 #22c55e、警示 #f59e0b、错误 #ec1313；主按钮为 label-primary 底 + bg 文字，暗色主题下自动反转。</text>
+  <!-- ================= C：已登录 ================= -->
+  <g transform="translate(840, 32)">
+    <text x="0" y="0" font-size="13" font-weight="600" fill="#61666b">C · 已登录</text>
+    <rect x="0" y="16" width="376" height="820" rx="12" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="24" y="60" font-size="20" font-weight="600" fill="#0f1115">Devin 子代理</text>
+    <text x="24" y="84" font-size="13" fill="#61666b">把一个任务交给 Devin 执行，结果回到当前会话。</text>
+
+    <rect x="24" y="104" width="328" height="292" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="132" font-size="13" font-weight="600" fill="#0f1115">连接</text>
+    <rect x="268" y="118" width="64" height="20" rx="10" fill="none" stroke="rgba(0,0,0,.16)"/>
+    <circle cx="280" cy="128" r="3" fill="#22c55e"/>
+    <text x="288" y="132" font-size="11" fill="#61666b">已连接</text>
+
+    <text x="44" y="164" font-size="15" font-weight="600" fill="#0f1115">Example Account</text>
+    <text x="44" y="188" font-size="13" fill="#61666b">可用模型 2 个 · 最近检查 2026-11-07 13:20</text>
+    <rect x="44" y="204" width="288" height="1" fill="rgba(0,0,0,.08)"/>
+
+    <text x="44" y="230" font-size="12" font-weight="600" fill="#81858c">密钥</text>
+    <text x="44" y="252" font-size="13" fill="#0f1115">已保存 · devin-…（来自本机 Devin 登录）</text>
+    <text x="44" y="274" font-size="12" fill="#0f1115">替换密钥</text>
+    <text x="44" y="294" font-size="12" fill="#81858c">凭据文件同机其他账号可读，建议 chmod 600 收紧。</text>
+
+    <rect x="44" y="312" width="288" height="1" fill="rgba(0,0,0,.08)"/>
+    <rect x="44" y="330" width="96" height="34" rx="8" fill="#0f1115"/>
+    <text x="92" y="352" font-size="13" fill="#ffffff" text-anchor="middle">重新检测</text>
+    <rect x="152" y="330" width="150" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.12)"/>
+    <text x="227" y="352" font-size="12" fill="#0f1115" text-anchor="middle">打开凭据文件位置</text>
+
+    <rect x="24" y="412" width="328" height="104" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="440" font-size="13" font-weight="600" fill="#0f1115">模型</text>
+    <rect x="44" y="454" width="288" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="56" y="476" font-size="13" fill="#0f1115">跟随账号默认 · SWE-2 Flash Medium</text>
+    <text x="306" y="476" font-size="12" fill="#81858c" text-anchor="end">▾</text>
+    <text x="44" y="504" font-size="12" fill="#81858c">写错的名字会被 Devin 静默换成默认模型。</text>
+
+    <rect x="24" y="532" width="328" height="132" rx="10" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="44" y="560" font-size="13" font-weight="600" fill="#0f1115">运行方式</text>
+    <text x="44" y="584" font-size="13" fill="#61666b">子代理权限</text>
+    <rect x="196" y="566" width="136" height="34" rx="8" fill="#ffffff" stroke="rgba(0,0,0,.10)"/>
+    <text x="210" y="588" font-size="13" fill="#0f1115">只读</text>
+    <text x="44" y="620" font-size="12" fill="#f59e0b">选「允许改文件」时不会弹审批，请确认知道后果。</text>
+    <text x="44" y="640" font-size="12" fill="#81858c">选「只读」时 Devin 的写入请求会被拒绝。</text>
+  </g>
 </svg>

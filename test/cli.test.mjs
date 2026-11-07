@@ -183,3 +183,31 @@ test('打开位置的请求判定：只处理新请求，重载不重复弹', as
   assert.equal(shouldReveal(5, 9), false, '计数回退时不能重复弹');
   assert.equal(shouldReveal(undefined, 0), false, '没有请求时不动');
 });
+
+test('读取 CLI 状态：stdin 必须接成 /dev/null，否则会被误判成未登录', async () => {
+  // 复现真实 Devin CLI 的行为：它会等 stdin 关闭才退出。用管道当 stdin 就会一直等。
+  const dir = await mkdtemp(join(tmpdir(), 'devin-stdin-'));
+  const fake = join(dir, 'devin');
+  try {
+    await writeFile(fake, [
+      '#!/bin/sh',
+      'if [ "$1" = "auth" ]; then',
+      '  read -r _ || true',
+      '  echo "Logged in (via Devin)."',
+      '  echo ""',
+      '  echo "Credentials:"',
+      '  echo "  File: /nonexistent/credentials.toml"',
+      '  echo "  Name: Blocking Fake"',
+      'fi',
+      '',
+    ].join('\n'), { mode: 0o755 });
+    await chmod(fake, 0o755);
+    const started = Date.now();
+    const status = await readCliStatus(fake);
+    const elapsed = Date.now() - started;
+    assert.equal(status.loggedIn, true, '接通 stdin 之后应当立刻读到登录状态');
+    assert.ok(elapsed < 5_000, `不该等到超时（用了 ${elapsed}ms）`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
