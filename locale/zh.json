@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Devin 子代理",
+    "description": "把一个任务交给 Devin 执行，结果回到当前会话。"
+  }
+}

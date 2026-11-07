@@ -1,0 +1,11 @@
+- insert:
+    - id: subagent-devin
+      name: '@omnisurge/dsh-subagent-devin'
+    # 工具行：provider 名必须与插件注册的名字一致；外部进程无法兑现 depthLimit，
+    # 所以 maxDepth 只能是 provider-managed（否则该行在挂载时被拒绝）。
+    - id: tool-subagent-devin
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: devin
+        toolName: subagent_devin
+        maxDepth: provider-managed

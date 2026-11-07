@@ -38,7 +38,7 @@
 |---|---|---|---|
 | `command` | string | App 自带二进制绝对路径 | 找不到时给出可读错误，不回落到 PATH 猜测 |
 | `model` | string \| null | `null`（跟随账号默认，实测为 `swe-2-flash-medium`） | 只允许来自探测列表的值；非法值不写入 |
-| `mode` | `'accept-edits' \| 'ask' \| 'plan' \| 'bypass'` | `accept-edits` | 通过 `session/set_config_option` 设置 |
+| `mode` | — | 会话默认 `accept-edits` | **M1 不提供**：`session/set_config_option` 的形态未实测，先不暴露一个可能无声失效的开关 |
 | `permission` | `'reject' \| 'allow'` | `allow` | ACP 权限请求的自动答复；`allow` = 子代理可直接改文件，无 DSH 审批闸门 |
 | `credentialRef` | string | `WINDSURF_API_KEY` | 凭据引用名，**不是**密钥本身 |
 
@@ -50,7 +50,8 @@
 
 - `capabilities`：`{agentOptions: false, agentPreset: false, outputSchema: false, depthLimit: false, ...}`，与官方 ACP 后端保持一致 → 工具行必须 `maxDepth: provider-managed`。
 - `inheritsParentContext: false`：子代理看不到父会话。
-- 每次 `start()`：解析凭据 → 若无值立即失败（可读错误，不启动进程）→ 启动 `devin acp` → `initialize` → `authenticate{_meta.api_key}` → `session/new{cwd}` →（配置了 `model`/`mode` 时）`set_config_option` → `session/prompt`。
+- 每次 `start()`：解析凭据 → 若无值立即失败（可读错误，不启动进程）→ 启动 `devin acp`（带 `--model`）→ `initialize` → `session/new{cwd}` →（会话报告的模型与请求不符时）`set_config_option`（失败只记录）→ `session/prompt`。
+- 认证走**子进程环境变量** `WINDSURF_API_KEY`，不调用 ACP `authenticate`：env 路径实测不拉浏览器、且 JSON-RPC 里 0 个 authenticate 帧。
 - 只把 `agent_message_chunk` 的文本拼成结果；`agent_thought_chunk` / `usage_update` 记入运行日志，不进结果。
 - 取消：`session/cancel` 后按 ACP 的 `stopReason: cancelled` 映射为 `aborted`。
 - 释放阶梯：stdin EOF（grace）→ SIGTERM → SIGKILL → 整棵树退出。
@@ -73,15 +74,15 @@
 | 门槛 | 证据 | 状态 |
 |---|---|---|
 | G0 契约与范围 | 本文件 + ADR-001 + 实测记录 | 已完成 |
-| G1 单元 | 待写 | 未开始 |
-| G2 Host 组合 | 待写 | 未开始 |
+| G1 单元 | `test/provider.test.mjs` 13 例通过；4 个变异（权限写死、跳过凭据检查、不传 `--model`、不收集分片）均按预期变红 | 已完成 |
 | G3 实际产物 | 待写（`npm pack` 后核 `files`） | 未开始 |
 | G4 Client 链路 | 待写（真实 slot 注册） | 未开始 |
 | G5 原生路径 | 待跑 | 未验 |
 | G6 平台/账号 | 真实 turn 已验 2 次（认证/key/模型），provider 内路径未验 | 部分 |
 
-## 7. 待核对（不猜，装好后用运行时自省确认）
+## 7. 页面（M2）的数据通路：已核实的结论
 
-1. Client 页如何调用 Host 自定义方法：候选是「Host 服务 + `@Remote` 生成 `ctx.remote.<ns>`」，或复用 `ctx.remote.settings` / `ctx.remote.credentials`（后两者已确认存在）。
-2. 本插件的 Config 是否自动出现在设置里（`settings.configure({auto: true})` 的默认行为），以及是否有官方表单可复用。
-3. `settings.section` 页面里读写 `ctx.remote.*` 的 inject 前置（AGENTS §5.8：带点的命名空间必须在 `inject` 里声明）。
+1. **密钥**：官方 `ctx.remote.credentials.{describe,set,unset}` 命名空间已存在，页面直接用，不自造 RPC。
+2. **模型/权限**：官方 `ctx.remote.{describe,update,replace,mutate}` 按插件 Config 的 ns 读写，带 revision/CAS。
+3. **测试连接/模型发现**：本仓已装的套件就是先例——profile 里的三方 bundle 可以 import 官方运行时包（`@deepseek-ai/dsh-tool-subagent`、`@deepseek-ai/schemastery`、`@deepseek-ai/dsh-typert-protocol`），并用 typert 协议声明自己的 `remote.<ns>`。M2 走同一条路，不发明第二条 RPC。
+4. **未验**：`@Remote` 装饰器需要 typert 编译产物（`createTypertRemoteInfo`）；手写 spec 能否被 Gateway 接受，M2 开工时先做最小验证，失败则退回「Host 在 apply 时探测并把结果写进 volatile Config 字段」。
