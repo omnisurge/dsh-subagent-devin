@@ -18,6 +18,7 @@ const requestedModel = modelIndex >= 0 ? argv[modelIndex + 1] : undefined;
 
 let buffer = '';
 let sessionId = 'session-fake';
+let authenticated = false;
 const pending = new Map();
 let nextRequestId = 1;
 const received = [];
@@ -68,6 +69,16 @@ async function handle(message) {
         agentInfo: { name: 'fake-devin', version: '0.0.0-test' },
       });
       return;
+    case 'authenticate': {
+      // 与实测一致：合成/无效密钥在此被拒，且不启动浏览器。
+      if (scenario === 'authfail') {
+        replyError(id, -32603, 'invalid api key');
+        return;
+      }
+      authenticated = true;
+      reply(id, {});
+      return;
+    }
     case 'session/new': {
       const model = requestedModel ?? 'swe-2-flash-medium';
       reply(id, {
@@ -75,10 +86,13 @@ async function handle(message) {
         configOptions: {
           model: {
             currentValue: scenario === 'setcfg' ? 'swe-2-flash-medium' : model,
-            options: [
-              { value: 'swe-2-flash-medium', name: 'SWE-2 Flash Medium' },
-              { value: 'swe-1-6-slow', name: 'SWE-1.6 Slow' },
-            ],
+            // 未认证时后端不给出可用模型（实测行为）。
+            options: authenticated
+              ? [
+                { value: 'swe-2-flash-medium', name: 'SWE-2 Flash Medium' },
+                { value: 'swe-1-6-slow', name: 'SWE-1.6 Slow' },
+              ]
+              : [],
           },
         },
       });

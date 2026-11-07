@@ -6,6 +6,7 @@
   "description": "Devin as a DeepSeek Harness subagent provider, authenticated from the credential service.",
   "exports": {
     ".": "./lib/index.js",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
@@ -20,13 +21,22 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
     }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1"
   },
   "scripts": {
-    "test": "node --test test/provider.test.mjs",
+    "test": "node --test test/provider.test.mjs test/probe.test.mjs",
     "mutations": "sh scripts/mutations.sh"
   }
 }

@@ -38,6 +38,8 @@
 |---|---|---|---|
 | `command` | string | App 自带二进制绝对路径 | 找不到时给出可读错误，不回落到 PATH 猜测 |
 | `model` | string \| null | `null`（跟随账号默认，实测为 `swe-2-flash-medium`） | 只允许来自探测列表的值；非法值不写入 |
+| `refreshToken` | number | 0 | 页面递增它来要求重新检查连接 |
+| `probe` | 对象（volatile） | 空 | 由插件写入的连接检查结果（模型列表、是否登录、时间、错误） |
 | `mode` | — | 会话默认 `accept-edits` | **M1 不提供**：`session/set_config_option` 的形态未实测，先不暴露一个可能无声失效的开关 |
 | `permission` | `'reject' \| 'allow'` | `allow` | ACP 权限请求的自动答复；`allow` = 子代理可直接改文件，无 DSH 审批闸门 |
 | `credentialRef` | string | `WINDSURF_API_KEY` | 凭据引用名，**不是**密钥本身 |
@@ -76,7 +78,7 @@
 | G0 契约与范围 | 本文件 + ADR-001 + 实测记录 | 已完成 |
 | G1 单元 | `test/provider.test.mjs` 13 例通过；4 个变异（权限写死、跳过凭据检查、不传 `--model`、不收集分片）均按预期变红 | 已完成 |
 | G3 实际产物 | 待写（`npm pack` 后核 `files`） | 未开始 |
-| G4 Client 链路 | 待写（真实 slot 注册） | 未开始 |
+| G4 Client 链路 | `lib/client.js` 已注册 `settings.section`；**未在真实客户端加载过** | 未验 |
 | G5 原生路径 | 待跑 | 未验 |
 | G6 平台/账号 | 真实 turn 已验 2 次（认证/key/模型），provider 内路径未验 | 部分 |
 

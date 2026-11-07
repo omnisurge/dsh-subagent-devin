@@ -193,7 +193,7 @@ test('取消：父侧 abort 后不必等 dispose，结果立即落为 aborted', 
     // 故意不调 dispose：abort 自己必须能让运行落定，否则调用方要等满超时。
     const raced = await Promise.race([
       run.result.then((result) => result.stopReason),
-      new Promise((resolve) => setTimeout(() => resolve('timeout'), 3_000)),
+      new Promise((resolve) => { const timer = setTimeout(() => resolve('timeout'), 3_000); timer.unref?.(); }),
     ]);
     assert.equal(raced, 'aborted');
   });
