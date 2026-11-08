@@ -483,7 +483,7 @@ function knobsCtx(patchLog, overrides = {}) {
     credentialRef: 'WINDSURF_API_KEY',
     model: '',
     permission: 'allow',
-    thought: 'high',
+    thought: 'max',
     speed: '',
     probe: {
       at: '2026-11-08T05:20:00.000Z', account: 'Example Account', source: 'store',
@@ -514,7 +514,7 @@ const findRadios = (node, out = []) => {
   return out;
 };
 
-test('渲染冒烟：思考强度与速度是胶囊单选，点一下就把档位写进设置', async () => {
+test('渲染冒烟：档位选中态来自已保存的值，不是账号当前值', async () => {
   const patches = [];
   const render = await loadPage(knobsCtx(patches));
   render();
@@ -522,24 +522,44 @@ test('渲染冒烟：思考强度与速度是胶囊单选，点一下就把档�
   const { tree } = render();
   const text = textOf(tree);
 
-  // 标签与中文档位（后端给的是 Medium/High/Max，页面上必须是人话）
+  // 中文档位：后端给的是 Medium/High/Max，页面上必须是人话
   assert.match(text, /思考强度/);
   assert.match(text, /最高/);
   assert.match(text, /快速/);
 
   const radios = findRadios(tree);
-  const selected = radios.filter((node) => node.props['aria-checked'] === true).map((node) => textOf(node.children ?? []).trim());
-  assert.ok(selected.includes('高'), `思考强度的当前档位应当被选中，实际选中：${selected.join('/')}`);
-  assert.ok(selected.includes('默认'), '速度留空时选中的是「默认」');
+  const label = (node) => textOf(node.children ?? []).trim();
+  const selected = radios.filter((node) => node.props['aria-checked'] === true).map(label);
+  // 保存的是 max、账号当前是 high：选中的必须是 max，否则就是把账号值冒充用户已选。
+  assert.ok(selected.includes('最高'), `选中的应当是已保存的档位，实际：${selected.join('/')}`);
+  assert.equal(selected.includes('高'), false, '账号当前值是 high，但它不是用户选的，不能显示成已选');
+  // 「默认」段把账号自己的当前值写出来，用户才知道不选时用哪档
+  assert.ok(radios.some((node) => label(node) === '默认 · 高'), '思考强度的默认段应标注账号当前值');
+  assert.ok(radios.some((node) => label(node) === '默认 · 标准'), '速度的默认段应标注账号当前值');
 
-  const top = radios.find((node) => textOf(node.children ?? []).trim() === '最高');
-  assert.ok(top, '应当有「最高」这一段');
-  top.props.onClick();
+  // 点「中」→ 写后端认的值
+  const medium = radios.find((node) => label(node) === '中');
+  assert.ok(medium, '应当有「中」这一段');
+  medium.props.onClick();
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.equal(patches.length, 1, '点一次只写一次设置');
-  // 沙箱里的对象与测试不是同一个 Object.prototype，逐个字段比。
-  assert.equal(patches[0].thought, 'max', '写进去的是后端认的值，不是界面上的中文');
+  assert.equal(patches[0].thought, 'medium', '写进去的是后端认的值，不是界面上的中文');
   assert.equal(Object.keys(patches[0]).length, 1, '只写这一项，不顺手覆盖别的设置');
+});
+
+test('渲染冒烟：点「默认」把已选的档位清空，回得去账号默认', async () => {
+  const patches = [];
+  const render = await loadPage(knobsCtx(patches));
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const radios = findRadios(render().tree);
+  const label = (node) => textOf(node.children ?? []).trim();
+  const fallback = radios.find((node) => label(node) === '默认 · 高');
+  assert.ok(fallback, '思考强度的默认段要能点到');
+  fallback.props.onClick();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(patches.length, 1);
+  assert.equal(patches[0].thought, '', '清成空串才是“跟随账号默认”，后端会按账号设置走');
 });
 
 test('渲染冒烟：没有探测成功时，档位控件禁用且不冒充可选', async () => {
@@ -554,4 +574,24 @@ test('渲染冒烟：没有探测成功时，档位控件禁用且不冒充可�
   assert.ok(radios.length > 0, '仍要画出控件，让用户知道这里有档位');
   assert.equal(radios.every((node) => node.props.disabled === true), true, '没有可选项时整组必须禁用');
   assert.match(textOf(tree), /检测完成后/);
+});
+
+test('渲染冒烟：探测成功但后端没给档位时，如实说不提供，不催用户再检测', async () => {
+  const patches = [];
+  const render = await loadPage(knobsCtx(patches, {
+    probe: {
+      at: '2026-11-08T05:20:00.000Z', account: 'Example Account', source: 'store',
+      command: '/x/devin', keyPrefix: 'devin-', ok: true, authenticated: true,
+      current: 'swe-2-high', models: [{ value: 'swe-2-high', name: 'SWE-2' }],
+      thought: { current: '', options: [] }, speed: { current: '', options: [] },
+      reason: '', error: '',
+    },
+  }));
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const { tree } = render();
+  const text = textOf(tree);
+  assert.match(text, /当前后端不提供这个档位/, '检查已经成功，就不能再说“检测完成后才能切换”');
+  assert.equal(/检测完成后/.test(text), false, '同一件事不能两种说法混着出现');
+  assert.equal(findRadios(tree).every((node) => node.props.disabled === true), true);
 });

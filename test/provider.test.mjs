@@ -231,6 +231,19 @@ test('档位：留空表示跟随账号默认，一个请求都不发', async ()
   });
 });
 
+test('档位被拒：记一条事实，运行继续（不假装设置成功）', async () => {
+  await withWorkspace(async (cwd) => {
+    const { provider, ctx } = await startRun('rejectmodel', { thought: 'max', speed: 'fast' });
+    const run = await launch(provider, request(undefined, cwd));
+    const result = await run.result;
+    assert.equal(result.stopReason, 'end_turn', '档位设不上也不能把运行搞挂');
+    assert.equal(ctx.warnings.length, 2, '两项各自留一条事实');
+    assert.match(ctx.warnings[0], /thought_level/);
+    assert.match(ctx.warnings[1], /speed/);
+    await run.dispose();
+  });
+});
+
 test('模型回落：后端不采用请求值时仍完成运行，并留下回落事实', async () => {
   await withWorkspace(async (cwd) => {
     const { provider, ctx } = await startRun('rejectmodel', { model: 'swe-9-imaginary' });

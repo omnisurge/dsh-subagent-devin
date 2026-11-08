@@ -142,6 +142,16 @@ mutate "改完模型不更新会话当前值" lib/acp.js \
   "        // 变异：不更新缓存" \
   "「后端忽略 --model」用例"
 
+mutate "选中态用账号当前值" lib/client.js \
+  "'aria-checked': entry.value === value," \
+  "'aria-checked': entry.value === (block?.current ?? '')," \
+  "「档位选中态来自已保存的值」用例"
+
+mutate "检查成功也说没检测" lib/client.js \
+  "        return checked ? t('knobsUnavailable') : t('knobsLocked');" \
+  "        return t('knobsLocked');" \
+  "「探测成功但后端没给档位」用例"
+
 mutate "档位不提交" lib/client.js \
   "onClick: () => { if (entry.value !== value) void patchSettings({ [field]: entry.value }); }," \
   "onClick: () => {}," \
