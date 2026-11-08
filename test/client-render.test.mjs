@@ -222,7 +222,7 @@ test('渲染冒烟：已连接态显示账号、模型数与密钥行，且不�
   const text = textOf(tree);
   assert.match(text, /已连接/);
   assert.match(text, /Example Account/);
-  assert.match(text, /1 个可用模型/);
+  assert.match(text, /可用模型 1 个/);
   assert.match(text, /devin-…/);
   assert.match(text, /替换密钥/);
   assert.equal(/devin auth login/.test(text), false, '已连接后不再展示登录命令');
