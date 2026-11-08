@@ -122,6 +122,16 @@ mutate "只看文件权限不看目录" lib/cli.js \
   "  if (readableByOther) return 'other';" \
   "「凭据暴露判定」用例"
 
+mutate "收回的模型不显示" lib/client.js \
+  "savedModelMissing ? h(" \
+  "false ? h(" \
+  "「收回的模型」用例"
+
+mutate "没探测成功也标不提供" lib/client.js \
+  "savedModelMissing && models.length > 0;" \
+  "savedModelMissing;" \
+  "「还没探测成功」用例"
+
 mutate "模型不设上去只靠 --model" lib/index.js \
   "    await session.trySetConfig('model', config.model.trim());" \
   "    // 变异：不设，指望 --model 生效" \

@@ -409,3 +409,70 @@ test('渲染冒烟：Host 明确拒绝时显示它的原话，而不是含糊说
   assert.match(text, /this deployment does not mount a settings provider/, 'Host 的原话要透给用户');
   assert.equal(/找不到保存它的设置/.test(text), false, '这是读取失败，不是“没有那一行”');
 });
+
+test('渲染冒烟：已保存的模型被账号收回后，下拉里仍显示它并标注不可用', async () => {
+  // 真机现场：配置里记的模型后来被账号收回，探测列表里就没有了。下拉里没有匹配项时
+  // 选择框会落空，看上去像没保存过——这里要补一个标着「不可用」的项把它显示出来。
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? credentialsStub(true)
+      : (key === 'remote.settings' ? settingsStub({
+        credentialRef: 'WINDSURF_API_KEY',
+        model: 'swe-2-ultra-legacy',
+        permission: 'allow',
+        probe: {
+          at: '2026-11-07T05:20:00.000Z',
+          account: 'Example Account',
+          source: 'cli',
+          command: '/x/devin',
+          keyPrefix: 'devin-',
+          ok: true,
+          authenticated: true,
+          current: 'swe-2-flash-medium',
+          models: [{ value: 'swe-2-flash-medium', name: 'SWE-2 Flash Medium' }],
+          reason: '',
+          error: '',
+        },
+      }) : undefined)),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const { tree } = render();
+  const text = textOf(tree);
+  assert.match(text, /swe-2-ultra-legacy（账号当前不提供）/, '已收回的模型要带着「不可用」显示出来');
+
+  const findSavedOption = (node) => {
+    if (node === null || typeof node !== 'object') return null;
+    if (Array.isArray(node)) {
+      for (const child of node) { const found = findSavedOption(child); if (found !== null) return found; }
+      return null;
+    }
+    if (node.type === 'option' && node.props?.value === 'swe-2-ultra-legacy') return node;
+    for (const child of node.children ?? []) { const found = findSavedOption(child); if (found !== null) return found; }
+    return null;
+  };
+  const option = findSavedOption(tree);
+  assert.ok(option, '下拉里要有一个 value 等于已保存模型的选项，选择框才不会落空');
+});
+
+test('渲染冒烟：还没探测成功时不冒充「账号当前不提供」，只把已保存的值显示出来', async () => {
+  // 列表为空只代表还没问到，不代表账号不提供这个模型。此时只说事实：保存的是哪个。
+  const ctx = {
+    get: (key) => (key === 'remote.credentials'
+      ? credentialsStub(true)
+      : (key === 'remote.settings' ? settingsStub({
+        credentialRef: 'WINDSURF_API_KEY',
+        model: 'swe-2-high',
+        permission: 'allow',
+        probe: { at: '', account: '', source: '', command: '', keyPrefix: '', ok: false, authenticated: false, current: '', models: [], reason: '', error: '' },
+      }) : undefined)),
+  };
+  const render = await loadPage(ctx);
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const { tree } = render();
+  const text = textOf(tree);
+  assert.equal(/账号当前不提供/.test(text), false, '还没问到不能说人家不提供');
+  assert.match(text, /swe-2-high/, '已保存的值要照常显示，不能假装没存过');
+});
