@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   candidateCommands,
+  credentialExposure,
   findOnPath,
   parseAuthStatus,
   parseCredentialFile,
@@ -65,7 +66,10 @@ test('从 CLI 导入：读到密钥，并报出偏宽的文件权限', async () 
     assert.ok(found, '应读到密钥');
     assert.equal(found.value, 'devin-test-value');
     assert.equal(found.path, file);
-    assert.equal(found.loosePermissions, true, '644 应被判为偏宽');
+    // 临时目录本身别人进不去，所以 644 在这里其实读不到——这正是要区分
+    // “文件权限宽”和“真的暴露”的原因（见下面 credentialExposure 的用例）。
+    assert.equal(found.exposure, 'none', '上级目录进不去就不算暴露');
+    assert.equal(found.loosePermissions, false, '读不到就不该吓用户');
 
     await chmod(file, 0o600);
     const tight = await readCredentialFromCli(FAKE, { candidates: [file] });
@@ -263,4 +267,16 @@ test('库里是平台密钥且关掉自动导入时，明确说是平台密钥�
   };
   const resolved = await resolveProbeKey(ctx, { credentialRef: 'WINDSURF_API_KEY', importFromCli: false }, FAKE);
   assert.equal(resolved.reason, 'platform-key-unusable');
+});
+
+test('凭据暴露判定：看文件权限，也要看上级目录能不能走进去', async () => {
+  const file = '/home/someone/.local/share/devin/credentials.toml';
+  const dirs = ['/home/someone/.local/share/devin', '/home/someone/.local/share', '/home/someone/.local', '/home/someone', '/home', '/'];
+  const statWith = (dirMode) => async (p) => (p === file ? 0o100644 : (dirs.includes(p) ? dirMode : 0o40755));
+
+  assert.equal(await credentialExposure(file, 0o100644, statWith(0o755)), 'other', '全链路都能进、文件 644 → 谁都能读');
+  assert.equal(await credentialExposure(file, 0o100644, statWith(0o750)), 'group', '主目录 750 → 同组能读（macOS 上就是每个普通账号）');
+  assert.equal(await credentialExposure(file, 0o100644, statWith(0o700)), 'none', '主目录 700 → 别人进不来，644 也不暴露');
+  assert.equal(await credentialExposure(file, 0o100600, statWith(0o755)), 'none', '文件 600 → 只有本人');
+  assert.equal(await credentialExposure(file, 0o100640, statWith(0o755)), 'group', '文件 640 → 同组可读');
 });

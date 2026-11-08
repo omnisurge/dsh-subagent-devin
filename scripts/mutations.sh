@@ -117,6 +117,11 @@ mutate "volatile 引用不解成值" lib/index.js \
   "  if (false) return plainConfig(value.get());" \
   "「volatile 快照」用例"
 
+mutate "只看文件权限不看目录" lib/cli.js \
+  "  if (readableByOther && await traversable(0o001)) return 'other';" \
+  "  if (readableByOther) return 'other';" \
+  "「凭据暴露判定」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \
