@@ -4,7 +4,7 @@
  */
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -172,9 +172,30 @@ test('模型：--model 真的传到后端；采用的模型与请求一致时不
   });
 });
 
+test('模型：后端忽略 --model 时，必须改用 set_config_option 设上去', async () => {
+  await withWorkspace(async (cwd) => {
+    const log = join(cwd, 'calls.jsonl');
+    process.env.FAKE_CALL_LOG = log;
+    try {
+      const { provider, ctx } = await startRun('ignoremodel', { model: 'swe-2-high' });
+      const run = await launch(provider, request(undefined, cwd));
+      await run.result;
+      const calls = (await readFile(log, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+      const setCall = calls.find((call) => call.method === 'session/set_config_option');
+      assert.ok(setCall, 'acp 忽略 --model，插件必须走协议里的 set_config_option');
+      assert.equal(setCall.params.configId, 'model');
+      assert.equal(setCall.params.value, 'swe-2-high');
+      assert.deepEqual(ctx.warnings, [], '设上去了就不该告警');
+      await run.dispose();
+    } finally {
+      delete process.env.FAKE_CALL_LOG;
+    }
+  });
+});
+
 test('模型回落：后端不采用请求值时仍完成运行，并留下回落事实', async () => {
   await withWorkspace(async (cwd) => {
-    const { provider, ctx } = await startRun('setcfg', { model: 'swe-9-imaginary' });
+    const { provider, ctx } = await startRun('rejectmodel', { model: 'swe-9-imaginary' });
     const run = await launch(provider, request(undefined, cwd));
     const result = await run.result;
     assert.equal(result.stopReason, 'end_turn');

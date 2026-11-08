@@ -88,6 +88,31 @@ start: (request) => startRun(ctx, plainConfig(config), request, activeSessions)
 | 绿点「已连接」+ 账号/模型数/最近检查 | 探测成功 |
 | 黄点「未连接」+ 具体原因句 | 探测确实失败，句子说明下一步；20 秒仍无结果则改为「检查没有返回结果」并放开重试按钮 |
 
+## 模型：`--model` 是摆设，真正生效的是 `set_config_option`
+
+2026-11-08 亲验（`devin acp`，本机 0.2.x 桌面版自带 CLI）：
+
+| 试法 | 结果 |
+|---|---|
+| `devin acp --model swe-2-high` | **无效**，会话仍是账号默认模型 |
+| `DEVIN_MODEL=swe-2-high` 环境变量 | **无效** |
+| ACP `session/set_config_option {configId:'model', value}` | **有效**，`currentValue` 变成新值 |
+| 设一个不在账号可用表里的模型 | 被拒：`Invalid params: Invalid value 'x' for config option 'model'` |
+
+所以插件把「设模型」当成**协议内的一次显式设置**，不再依赖命令参数；被拒时运行继续用账号默认模型，
+并在运行结束时给一条回落事实（同一事实只出现一次）。
+
+另一个必须知道的：**可用模型表是账号驱动的，会变**。同一天两次握手，先返回 2 个
+（`swe-2-flash-medium`、`swe-1-6-slow`），几小时后返回 **132 个**且默认变成 `swe-2-high` ——
+权益/灰度在服务端生效，探测那一刻拿到什么就是什么。因此：
+
+- 上限只防异常膨胀（400），不做产品裁剪；能选什么由后端的可用表决定。
+- 页面显示「列表来自最近一次检查」，「重新检测」会重新握手拿新表；不要把旧探测结果当永久事实。
+- `session.model.actual` 要读会话当前值，不能在握手时拍一张快照就完事——设过模型之后它会变。
+
+执行者：`test/provider.test.mjs`「后端忽略 --model 时，必须改用 set_config_option 设上去」与
+「模型回落」；变异「模型不设上去只靠 --model」「改完模型不更新会话当前值」撤掉任一侧都必红。
+
 ## 权限提示只说“真的谁能读到”
 
 Devin CLI 自己生成的 `~/.local/share/devin/credentials.toml` 是 644。插件**不去改它**：

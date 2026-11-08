@@ -122,6 +122,16 @@ mutate "只看文件权限不看目录" lib/cli.js \
   "  if (readableByOther) return 'other';" \
   "「凭据暴露判定」用例"
 
+mutate "模型不设上去只靠 --model" lib/index.js \
+  "    await session.trySetConfig('model', config.model.trim());" \
+  "    // 变异：不设，指望 --model 生效" \
+  "「后端忽略 --model」用例"
+
+mutate "改完模型不更新会话当前值" lib/acp.js \
+  "        if (sessionConfigOptions?.[configId] !== undefined) sessionConfigOptions[configId] = { ...sessionConfigOptions[configId], currentValue: value };" \
+  "        // 变异：不更新缓存" \
+  "「后端忽略 --model」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

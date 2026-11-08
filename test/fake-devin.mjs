@@ -11,7 +11,10 @@
  *   setcfg       对 session/set_config_option 记下值并以 success 回答
  * 收到的 argv 里的 --model 会体现在 session/new 的 configOptions.model.currentValue 上。
  */
+import { appendFileSync } from 'node:fs';
+
 const scenario = process.env.FAKE_SCENARIO ?? 'success';
+const callLog = process.env.FAKE_CALL_LOG ?? '';
 const argv = process.argv.slice(2);
 
 // CLI 面（非 ACP）：给探测提供一个确定的账号与凭据文件位置。
@@ -81,6 +84,10 @@ async function handle(message) {
   }
   const { method, id, params } = message;
   received.push({ method, params });
+  // 需要观察请求序列的用例（例如“模型必须走 set_config_option”）把请求记到文件里。
+  if (callLog !== '') {
+    try { appendFileSync(callLog, `${JSON.stringify({ method, params })}\n`); } catch { /* 记不上不影响协议 */ }
+  }
 
   switch (method) {
     case 'initialize':
@@ -106,7 +113,9 @@ async function handle(message) {
         replyError(id, -32000, 'Failed to load team settings: Authentication required: invalid api key');
         return;
       }
-      const model = requestedModel ?? 'swe-2-flash-medium';
+      // ignoremodel：真机行为——acp 子命令忽略 --model，会话仍是账号默认模型。
+      const ignored = scenario === 'ignoremodel' || scenario === 'rejectmodel';
+      const model = ignored ? 'swe-2-flash-medium' : (requestedModel ?? 'swe-2-flash-medium');
       reply(id, {
         sessionId,
         // 真实后端给的是**数组**，每项带 id。替身必须照抄这个形状，
@@ -142,7 +151,12 @@ async function handle(message) {
     }
     case 'session/set_config_option':
       globalThis.__setConfigCalls = [...(globalThis.__setConfigCalls ?? []), params];
-      if (scenario === 'setcfg') {
+      if (scenario === 'rejectmodel') {
+        // 真机上不合规的模型就是被拒绝的：会话保持账号默认模型。
+        replyError(id, -32602, `Invalid value '${params.value}' for config option 'model'`);
+        return;
+      }
+      if (scenario === 'setcfg' || scenario === 'ignoremodel') {
         reply(id, {
           configOptions: [
             { id: 'mode', name: 'Mode', type: 'select', currentValue: 'accept-edits', options: [] },
