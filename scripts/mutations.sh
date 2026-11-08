@@ -142,6 +142,21 @@ mutate "改完模型不更新会话当前值" lib/acp.js \
   "        // 变异：不更新缓存" \
   "「后端忽略 --model」用例"
 
+mutate "档位不提交" lib/client.js \
+  "onClick: () => { if (entry.value !== value) void patchSettings({ [field]: entry.value }); }," \
+  "onClick: () => {}," \
+  "「点一下就把档位写进设置」用例"
+
+mutate "没探测也允许点" lib/client.js \
+  "disabled: levelLocked(block) || busy === 'settings'," \
+  "disabled: busy === 'settings'," \
+  "「档位控件禁用」用例"
+
+mutate "档位不传给后端" lib/index.js \
+  "    const applied = await session.trySetConfig(configId, wanted);" \
+  "    const applied = true;" \
+  "「档位也走 set_config_option」用例"
+
 mutate "取消不接线" lib/acp.js \
   "    else signal.addEventListener('abort', onAbort, { once: true });" \
   "    else void 0;" \

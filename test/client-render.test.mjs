@@ -476,3 +476,82 @@ test('渲染冒烟：还没探测成功时不冒充「账号当前不提供」�
   assert.equal(/账号当前不提供/.test(text), false, '还没问到不能说人家不提供');
   assert.match(text, /swe-2-high/, '已保存的值要照常显示，不能假装没存过');
 });
+
+/** 已连接且带档位的设置桩，并把 update 的入参记下来。 */
+function knobsCtx(patchLog, overrides = {}) {
+  const value = {
+    credentialRef: 'WINDSURF_API_KEY',
+    model: '',
+    permission: 'allow',
+    thought: 'high',
+    speed: '',
+    probe: {
+      at: '2026-11-08T05:20:00.000Z', account: 'Example Account', source: 'store',
+      command: '/x/devin', keyPrefix: 'devin-', ok: true, authenticated: true,
+      current: 'swe-2-high',
+      models: [{ value: 'swe-2-high', name: 'SWE-2' }],
+      thought: { current: 'high', options: [{ value: 'medium', name: 'Medium' }, { value: 'high', name: 'High' }, { value: 'max', name: 'Max' }] },
+      speed: { current: 'standard', options: [{ value: 'standard', name: 'Standard' }, { value: 'fast', name: 'Fast' }] },
+      reason: '', error: '',
+    },
+    ...overrides,
+  };
+  return {
+    get: (key) => (key === 'remote.credentials'
+      ? credentialsStub(true)
+      : (key === 'remote.settings' ? {
+        describe: async () => ({ namespaces: [{ ns: 'include:subagent-devin', revision: 3, value }] }),
+        update: async (ns, patch) => { patchLog.push(patch); return ok(undefined); },
+      } : undefined)),
+  };
+}
+
+const findRadios = (node, out = []) => {
+  if (node === null || typeof node !== 'object') return out;
+  if (Array.isArray(node)) { for (const child of node) findRadios(child, out); return out; }
+  if (node.type === 'button' && node.props?.role === 'radio') out.push(node);
+  for (const child of node.children ?? []) findRadios(child, out);
+  return out;
+};
+
+test('渲染冒烟：思考强度与速度是胶囊单选，点一下就把档位写进设置', async () => {
+  const patches = [];
+  const render = await loadPage(knobsCtx(patches));
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const { tree } = render();
+  const text = textOf(tree);
+
+  // 标签与中文档位（后端给的是 Medium/High/Max，页面上必须是人话）
+  assert.match(text, /思考强度/);
+  assert.match(text, /最高/);
+  assert.match(text, /快速/);
+
+  const radios = findRadios(tree);
+  const selected = radios.filter((node) => node.props['aria-checked'] === true).map((node) => textOf(node.children ?? []).trim());
+  assert.ok(selected.includes('高'), `思考强度的当前档位应当被选中，实际选中：${selected.join('/')}`);
+  assert.ok(selected.includes('默认'), '速度留空时选中的是「默认」');
+
+  const top = radios.find((node) => textOf(node.children ?? []).trim() === '最高');
+  assert.ok(top, '应当有「最高」这一段');
+  top.props.onClick();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(patches.length, 1, '点一次只写一次设置');
+  // 沙箱里的对象与测试不是同一个 Object.prototype，逐个字段比。
+  assert.equal(patches[0].thought, 'max', '写进去的是后端认的值，不是界面上的中文');
+  assert.equal(Object.keys(patches[0]).length, 1, '只写这一项，不顺手覆盖别的设置');
+});
+
+test('渲染冒烟：没有探测成功时，档位控件禁用且不冒充可选', async () => {
+  const patches = [];
+  const render = await loadPage(knobsCtx(patches, {
+    probe: { at: '', ok: false, authenticated: false, models: [], current: '', thought: { current: '', options: [] }, speed: { current: '', options: [] }, reason: '' },
+  }));
+  render();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const { tree } = render();
+  const radios = findRadios(tree);
+  assert.ok(radios.length > 0, '仍要画出控件，让用户知道这里有档位');
+  assert.equal(radios.every((node) => node.props.disabled === true), true, '没有可选项时整组必须禁用');
+  assert.match(textOf(tree), /检测完成后/);
+});

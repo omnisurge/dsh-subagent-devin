@@ -193,6 +193,44 @@ test('模型：后端忽略 --model 时，必须改用 set_config_option 设上�
   });
 });
 
+test('档位：思考强度与速度也走 set_config_option 生效', async () => {
+  await withWorkspace(async (cwd) => {
+    const log = join(cwd, 'calls-levels.jsonl');
+    process.env.FAKE_CALL_LOG = log;
+    try {
+      const { provider } = await startRun('ignoremodel', { thought: 'max', speed: 'fast' });
+      const run = await launch(provider, request(undefined, cwd));
+      await run.result;
+      const calls = (await readFile(log, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+      const sets = calls.filter((call) => call.method === 'session/set_config_option');
+      assert.deepEqual(sets.map((call) => [call.params.configId, call.params.value]), [
+        ['thought_level', 'max'],
+        ['speed', 'fast'],
+      ], '两项档位都要显式设上去；留空的那项不发请求');
+      await run.dispose();
+    } finally {
+      delete process.env.FAKE_CALL_LOG;
+    }
+  });
+});
+
+test('档位：留空表示跟随账号默认，一个请求都不发', async () => {
+  await withWorkspace(async (cwd) => {
+    const log = join(cwd, 'calls-none.jsonl');
+    process.env.FAKE_CALL_LOG = log;
+    try {
+      const { provider } = await startRun('ignoremodel', {});
+      const run = await launch(provider, request(undefined, cwd));
+      await run.result;
+      const calls = (await readFile(log, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+      assert.equal(calls.some((call) => call.method === 'session/set_config_option'), false, '没选就什么都不设，交给账号默认');
+      await run.dispose();
+    } finally {
+      delete process.env.FAKE_CALL_LOG;
+    }
+  });
+});
+
 test('模型回落：后端不采用请求值时仍完成运行，并留下回落事实', async () => {
   await withWorkspace(async (cwd) => {
     const { provider, ctx } = await startRun('rejectmodel', { model: 'swe-9-imaginary' });

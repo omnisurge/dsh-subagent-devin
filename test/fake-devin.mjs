@@ -133,6 +133,27 @@ async function handle(message) {
             ],
           },
           {
+            id: 'thought_level',
+            name: 'Thinking',
+            type: 'select',
+            currentValue: 'high',
+            options: [
+              { value: 'medium', name: 'Medium' },
+              { value: 'high', name: 'High' },
+              { value: 'max', name: 'Max' },
+            ],
+          },
+          {
+            id: 'speed',
+            name: 'Speed',
+            type: 'select',
+            currentValue: 'standard',
+            options: [
+              { value: 'standard', name: 'Standard' },
+              { value: 'fast', name: 'Fast' },
+            ],
+          },
+          {
             id: 'model',
             name: 'Model',
             type: 'select',

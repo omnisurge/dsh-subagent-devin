@@ -72,3 +72,18 @@ test('设置页注册使用官方 slot 与稳定 id', async () => {
   assert.ok(client.includes('ctx.slots.inject(SECTION'));
   assert.ok(client.includes('order: 25'));
 });
+
+test('档位标签的键与后端取值都在，且一一对应', async () => {
+  // 这些键是经变量名引用的（t(LEVEL_LABELS[value])），上面的静态扫描抓不到，
+  // 漏了用户会直接看到后端英文标签 Medium/High/Max。
+  const source = await read('lib/client.js');
+  const zh = dictKeys(source, 'ZH');
+  for (const key of ['capsuleDefault', 'levelMedium', 'levelHigh', 'levelMax', 'levelStandard', 'levelFast', 'thinking', 'speed', 'thinkingHint', 'speedHint', 'knobsLocked', 'knobsBusy']) {
+    assert.ok(zh.has(key), `词典缺 ${key}`);
+  }
+  const map = /const LEVEL_LABELS = \{([^}]*)\}/.exec(source);
+  assert.ok(map, '找不到 LEVEL_LABELS');
+  for (const value of ['medium', 'high', 'max', 'standard', 'fast']) {
+    assert.ok(map[1].includes(`${value}:`), `LEVEL_LABELS 缺后端取值 ${value}`);
+  }
+});
