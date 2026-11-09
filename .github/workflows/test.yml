@@ -3,6 +3,8 @@ name: test
 on:
   push:
     branches: [main]
+    # 纯文档/许可改动不触发（否则每改一句说明都要跑 15 分钟的变异门禁）
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
   pull_request:
 
 jobs:

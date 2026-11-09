@@ -2,6 +2,8 @@
 
 把 Devin 接成 DeepSeek Harness 的子代理：当前会话把任务交给 Devin 执行，结果回到会话里。
 
+仓库：<https://github.com/omnisurge/dsh-subagent-devin>
+
 ## 安装
 
 本仓是一个 DSH 插件包，用官方的插件安装入口指向本仓目录即可（步骤见[开发与测试](docs/guides/development.md)）。
