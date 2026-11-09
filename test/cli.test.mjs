@@ -134,17 +134,24 @@ test('命令解析：配置指向不存在的文件时不静默换掉，标记 m
   assert.equal(resolved.missing, true, '必须让人知道配置的路径是坏的');
 });
 
-test('命令解析：留空时自动发现（本机应指到 Devin 桌面版自带的 CLI）', async () => {
+test('命令解析：留空时自动发现；这台机器没装 Devin 就如实标 missing', async () => {
   const resolved = await resolveDevinCommand({ configured: '' });
+  // 这条要在「装了 Devin」和「没装」两种机器上都成立：本地 macOS 装了，CI 的 Ubuntu 没装。
+  // 以前无条件断言「本机应指到 App 内 CLI」，换台机器就红——那是把机器状态当成了代码契约。
+  if (resolved.missing === true) {
+    assert.equal(resolved.source, 'none', '没找到时来源必须是 none，不能编一个来源');
+    assert.equal(resolved.command, 'devin', '没找到时给可读的默认名，供错误提示使用');
+    return;
+  }
   assert.ok(['path', 'candidate'].includes(resolved.source), `实际来源：${resolved.source}`);
   assert.match(resolved.command, /devin$/);
-  assert.equal(resolved.missing, undefined);
-  assert.ok(resolved.command.includes('Devin'), '本机应解析到 Devin 桌面版内的 CLI');
+  // 只有从候选目录找到时才断言它在 Devin 应用目录内——PATH 里可能是别的同名程序。
+  if (resolved.source === 'candidate') assert.ok(resolved.command.includes('Devin'));
 });
 
 test('打开位置的系统命令按平台给：macOS 选中文件、Windows 选中文件、Linux 开目录', () => {
-  assert.deepEqual(revealCommand('darwin', '/Users/a/.local/share/devin/credentials.toml'),
-    { command: 'open', args: ['-R', '/Users/a/.local/share/devin/credentials.toml'] });
+  assert.deepEqual(revealCommand('darwin', '/Users/example/.local/share/devin/credentials.toml'),
+    { command: 'open', args: ['-R', '/Users/example/.local/share/devin/credentials.toml'] });
   assert.deepEqual(revealCommand('win32', 'C:\\a\\credentials.toml'),
     { command: 'explorer', args: ['/select,C:\\a\\credentials.toml'] });
   assert.deepEqual(revealCommand('linux', '/home/a/.local/share/devin/credentials.toml'),
