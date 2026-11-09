@@ -73,7 +73,10 @@ docs 不计入：文档不进运行时，改文档不该让候选字节变样，
 
 ## 未验边界
 
-- `swe-2-high + thought=max` 与 App 的 `swe-2-max` 是否等价：日志无思考预算计量，**无法比较**。
+- ~~`swe-2-high + thought=max` 与 App 的 `swe-2-max` 是否等价~~ → **已证实等价**（2026-11-09 受控实验：
+  设 `thought_level=max` 后落库的 `sessions.model` 就是 `swe-2-max`，即 App 显示的那条记录；
+  六组映射表见[实测记录第 5 节](measured-20261109.md)）。
+- `swe-2-flash-medium` 在 `high`/`medium` 档下不改 id、只在 `max` 下变成 `swe-2-flash-max`：**原因未查明**。
 - 其他账号的可用表可能不同（本账号 132 项，观测到从 2 → 132 的变化）；页面按探测结果渲染，
   不在代码里钉死任何模型。
 - Windows/Linux 未验；`npm pack` 分发形态未验。
