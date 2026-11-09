@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, chmod, constants, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,13 +140,32 @@ test('命令解析：留空时自动发现；这台机器没装 Devin 就如实�
   // 以前无条件断言「本机应指到 App 内 CLI」，换台机器就红——那是把机器状态当成了代码契约。
   if (resolved.missing === true) {
     assert.equal(resolved.source, 'none', '没找到时来源必须是 none，不能编一个来源');
-    assert.equal(resolved.command, 'devin', '没找到时给可读的默认名，供错误提示使用');
+    // 各平台的候选路径不同（Linux 是 /usr/share/devin/devin、macOS 指向 App 内），
+    // 所以只断言「给了一个可读位置，且它确实不可执行」——不钉死某个平台的具体串。
+    assert.ok(typeof resolved.command === 'string' && resolved.command !== '', '要告诉用户该去哪儿找');
+    const runnable = await access(resolved.command, constants.X_OK).then(() => true, () => false);
+    assert.equal(runnable, false, '没找到时不能返回一个真能执行的文件');
     return;
   }
   assert.ok(['path', 'candidate'].includes(resolved.source), `实际来源：${resolved.source}`);
   assert.match(resolved.command, /devin$/);
   // 只有从候选目录找到时才断言它在 Devin 应用目录内——PATH 里可能是别的同名程序。
   if (resolved.source === 'candidate') assert.ok(resolved.command.includes('Devin'));
+});
+
+test('命令解析：整条链都没找到时，标 missing 且不返回一个可执行文件', async () => {
+  // 直接用目标平台的参数把「没装 Devin」这个分支钉死，不依赖跑测试的这台机器装没装。
+  const resolved = await resolveDevinCommand({ configured: '', platform: 'linux', home: '/nonexistent-home' });
+  if (resolved.missing !== true) {
+    // PATH 里恰好有 devin 时走不到这一支；此时只断言解析结果自洽。
+    assert.equal(resolved.source, 'path');
+    assert.match(resolved.command, /devin$/);
+    return;
+  }
+  assert.equal(resolved.source, 'none', '没找到时来源必须是 none');
+  assert.ok(typeof resolved.command === 'string' && resolved.command !== '', '要告诉用户该去哪儿找');
+  const runnable = await access(resolved.command, constants.X_OK).then(() => true, () => false);
+  assert.equal(runnable, false, '没找到时不能返回一个真能执行的文件');
 });
 
 test('打开位置的系统命令按平台给：macOS 选中文件、Windows 选中文件、Linux 开目录', () => {
