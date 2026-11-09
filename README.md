@@ -2,6 +2,11 @@
 
 把 Devin 接成 DeepSeek Harness 的子代理：当前会话把任务交给 Devin 执行，结果回到会话里。
 
+## 安装
+
+本仓是一个 DSH 插件包，用官方的插件安装入口指向本仓目录即可（步骤见[开发与测试](docs/guides/development.md)）。
+链接安装下，改源码要重启应用才会加载新版本。
+
 ## 怎么用
 
 1. **设置 → Devin 子代理**，确认右上角是绿色「已连接」。
@@ -38,5 +43,17 @@
 | [排查指南](docs/guides/troubleshooting.md) | 状态码、常见症状、诊断命令 |
 | [开发与测试](docs/guides/development.md) | 本地测试、变异门禁、安装方式 |
 | [插件契约](docs/specs/devin-subagent.md) | 身份表、失败语义、验收门槛 |
-| [决策记录](docs/adr/ADR-001-provider-and-settings-page.md) | 为什么这样接，以及被否掉的方案（[002](docs/adr/ADR-002-page-host-channel.md)：页面怎么触发 Host 动作） |
-| [实测记录](docs/evidence/measured-20261107.md) | 当时在真机上量到的事实 |
+| [决策记录](docs/adr/ADR-001-provider-and-settings-page.md) | 为什么这样接，以及被否掉的方案（[002](docs/adr/ADR-002-page-host-channel.md)：页面怎么触发 Host 动作；[003](docs/adr/ADR-003-thinking-and-speed-levels.md)：思考强度与速度为什么做成胶囊） |
+| [实测记录](docs/evidence/measured-20261109.md) | 在真机上量到的事实：哪些模型真能设、档位与模型是不是一回事 |
+
+## 范围与维护
+
+- **只验过 macOS + 单个 Devin 账号**。Windows/Linux 的命令行发现写了也测了纯函数，但没有真机跑过；
+  界面的键盘导航、暗色观感也只人工看过。未验的边界逐条写在[验收记录](docs/evidence/release-0.1.0-2.md)里。
+- 处于**维护期**：只修缺陷，不加新功能。版本按 `0.1.0-N` 递增，冻结后同号不换字节。
+- Devin 侧的可用模型表由账号决定、会变（一天内观测到 2 → 132 项）。页面上的列表来自最近一次检查，
+  点「重新检测」刷新即可，不需要改插件。
+
+---
+
+[MIT 许可](LICENSE)。
