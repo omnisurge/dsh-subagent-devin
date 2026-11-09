@@ -1,6 +1,6 @@
 {
   "name": "@omnisurge/dsh-subagent-devin",
-  "version": "0.1.0-1",
+  "version": "0.1.0-2",
   "private": true,
   "type": "module",
   "description": "Devin as a DeepSeek Harness subagent provider, authenticated from the credential service.",

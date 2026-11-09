@@ -9,6 +9,8 @@
 |---|---|---|
 | `model` | `''`（跟随账号默认） | 例如 `swe-2-flash-medium`、`swe-1-6-slow`。写错的名字会被 Devin 静默换成默认模型，所以页面只提供最近一次检查列出的可选值 |
 | `permission` | `allow` | 子代理的权限请求如何答复：`allow` 直接放行（可改文件），`reject` 一律拒绝 |
+| `thought` | `''`（跟随账号默认） | 思考强度：`medium` / `high` / `max`。**留空不是「设成 medium」，而是不干预**，用账号自己的设置 |
+| `speed` | `''`（跟随账号默认） | 速度：`standard` / `fast`，留空语义同上 |
 
 ## 高级（改配置或靠自动发现）
 
@@ -49,4 +51,5 @@
 | `loosePermissions` | 凭据文件是否对同机其他账号可读 |
 | `ok` / `authenticated` | 命令端起得来 / 认证是否通过 |
 | `models` / `current` | 账号可用模型列表 / 当前模型 |
+| `thought` / `speed` | 各含 `{current, options[]}`：账号当前档位与可选项。**未通过认证时为空**——那时后端给的是兜底默认值，不是这个账号的真实可选集 |
 | `error` | 原始技术诊断，只用于排查 |

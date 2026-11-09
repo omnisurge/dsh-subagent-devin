@@ -37,12 +37,14 @@
 | 字段 | 类型 | 默认 | 语义 |
 |---|---|---|---|
 | `command` | string | App 自带二进制绝对路径 | 找不到时给出可读错误，不回落到 PATH 猜测 |
-| `model` | string \| null | `null`（跟随账号默认，实测为 `swe-2-flash-medium`） | 只允许来自探测列表的值；非法值不写入 |
+| `model` | string | `''`（跟随账号默认；实测账号默认为 `swe-2-high`，显示名 `SWE-2`） | 只提供探测列表里的值。**`--model` 命令行参数会被忽略**，真正生效的是 `session/set_config_option`；不在可用表里的值被后端拒绝（`Invalid value`），此时运行继续、用账号当前模型，日志记回落事实 |
+| `thought` | string（volatile） | `''`（跟随账号默认） | `medium` / `high` / `max`。**留空 = 不发请求**，不是「设成 medium」。见 [ADR-003](../adr/ADR-003-thinking-and-speed-levels.md) |
+| `speed` | string（volatile） | `''`（跟随账号默认） | `standard` / `fast`。留空语义同上 |
 | `refreshToken` | number | 0 | 页面递增它来要求重新检查连接 |
 | `revealToken` | number | 0 | 页面递增它来要求打开凭据文件所在位置 |
 | `lastRevealToken` | number（volatile） | 0 | 已处理的打开请求；`revealToken > lastRevealToken` 才执行 |
-| `probe` | 对象（volatile） | 空 | 由插件写入的连接检查结果：`at/account/source/command/credentialPath/keyPrefix/revealReason/reason/loosePermissions/ok/models/current/authenticated/error`。**只放机器可读事实，不放成品句子** |
-| `mode` | — | 会话默认 `accept-edits` | **M1 不提供**：`session/set_config_option` 的形态未实测，先不暴露一个可能无声失效的开关 |
+| `probe` | 对象（volatile） | 空 | 由插件写入的连接检查结果：`at/account/source/command/credentialPath/keyPrefix/revealReason/reason/loosePermissions/ok/models/current/thought/speed/authenticated/error`。`thought` / `speed` 各含 `{current, options[]}`。**只放机器可读事实，不放成品句子**；**未通过认证时 `thought`/`speed` 为空**（那时后端给的是兜底默认值，不是账号真实可选集） |
+| `mode` | — | 会话默认 `accept-edits` | **不提供**：权限语义已经由 `permission`（自动答复）表达，再暴露一个 `mode` 会让两处都能改同一件事。`set_config_option` 的形态已实测（2026-11-08），不是「未实测」而被搁置 |
 | `permission` | `'reject' \| 'allow'` | `allow` | ACP 权限请求的自动答复；`allow` = 子代理可直接改文件，无 DSH 审批闸门 |
 | `credentialRef` | string | `WINDSURF_API_KEY` | 凭据引用名，**不是**密钥本身 |
 | `importFromCli` | boolean | `true` | 库里没密钥时，从本机 CLI 凭据文件导入一次；**不覆盖已有值** |
@@ -63,7 +65,10 @@ Windows 路径用反斜杠自行拼接（`path.join` 用本机分隔符，跨平
 
 - `capabilities`：`{agentOptions: false, agentPreset: false, outputSchema: false, depthLimit: false, ...}`，与官方 ACP 后端保持一致 → 工具行必须 `maxDepth: provider-managed`。
 - `inheritsParentContext: false`：子代理看不到父会话。
-- 每次 `start()`：解析凭据 → 若无值立即失败（可读错误，不启动进程）→ 启动 `devin acp`（带 `--model`）→ `initialize` → `session/new{cwd}` →（会话报告的模型与请求不符时）`set_config_option`（失败只记录）→ `session/prompt`。
+- 每次 `start()`：解析凭据 → 若无值立即失败（可读错误，不启动进程）→ 启动 `devin acp` → `initialize` →
+  `session/new{cwd}` → 把三项显式设置上去：`model`、`thought_level`、`speed`，**每项只在配置非空时才发**
+  （`session/set_config_option`；被拒只记一条事实，运行继续）→ `session/prompt`。
+  `--model` 不参与：实测 `devin acp` 会忽略它，只有 `set_config_option` 生效。
 - 认证走**子进程环境变量** `WINDSURF_API_KEY`，不调用 ACP `authenticate`：env 路径实测不拉浏览器、且 JSON-RPC 里 0 个 authenticate 帧。
 - 只把 `agent_message_chunk` 的文本拼成结果；`agent_thought_chunk` / `usage_update` 记入运行日志，不进结果。
 - 取消：`session/cancel` 后按 ACP 的 `stopReason: cancelled` 映射为 `aborted`。
@@ -80,14 +85,16 @@ Windows 路径用反斜杠自行拼接（`path.join` 用本机分隔符，跨平
 | 密钥无效 | 「密钥无效或已失效（Devin 拒绝认证）。请重新粘贴。」并附原始错误码到诊断区 |
 | 可执行文件缺失 | 「找不到 Devin CLI。请在设置里填写完整路径；Devin 应用自带的路径是 …」 |
 | 团队设置拉取失败 | 「连不上 Devin 服务（网络或账号状态）。」+ 诊断码 |
-| 模型写错/无权限 | 不静默：结果是默认模型，日志里记录回落事实 |
+| 模型写错/无权限 | 不静默：结果是默认模型，日志里记录回落事实；页面把已保存但不在列表里的值照常显示并标「账号当前不提供」 |
+| 档位被后端拒绝 | 运行继续，用账号当前值；日志记一条 `thought_level/speed "x" 未被接受，本次使用 "y"` |
+| 后端没给档位项（旧版 acp） | 整组禁用并写「当前后端不提供这个档位」，**不说**「检测完成后才能切换」（那时检查已经成功了） |
 
 ## 6. 门槛与现状
 
 | 门槛 | 证据 | 状态 |
 |---|---|---|
 | G0 契约与范围 | 本文件 + ADR-001 + 实测记录 | 已完成 |
-| G1 单元 | 5 个测试文件共 45 例通过（provider / probe / cli / 页面契约 / 页面渲染冒烟）；13 个变异均按预期变红（含 CLI stdin、configOptions 归一化、把平台密钥当可用密钥、认证失败归类、打开位置去重、页面永远显示未连接） | 已完成 |
+| G1 单元 | 5 个测试文件共 63 例通过（provider / probe / cli / 页面契约 / 页面渲染冒烟）；27 个变异均按预期变红（含 CLI stdin、configOptions 归一化、把平台密钥当可用密钥、认证失败归类、打开位置去重、页面永远显示未连接、模型不设只靠 `--model`、选中态用账号当前值、检查成功也说没检测、档位不传给后端） | 已完成 |
 | G3 实际产物 | 待写（`npm pack` 后核 `files`） | 未开始 |
 | G4 Client 链路 | `lib/client.js` 已注册 `settings.section`，真实客户端出现过该分区；**三态新界面未在真实客户端加载过** | 未验 |
 | G5 原生路径 | 待跑 | 未验 |
