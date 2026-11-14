@@ -53,6 +53,7 @@
 - **只验过 macOS + 单个 Devin 账号**。Windows/Linux 的命令行发现写了也测了纯函数，但没有真机跑过；
   界面的键盘导航、暗色观感也只人工看过。未验的边界逐条写在[验收记录](docs/evidence/release-0.1.0-2.md)里。
 - 处于**维护期**：只修缺陷，不加新功能。版本按 `0.1.0-N` 递增，冻结后同号不换字节。
+- Devin 平台 API（Code Scans 等）不属于本插件，按 [ADR-004](docs/adr/ADR-004-devin-platform-separate-repository.md) 另开仓库。
 - Devin 侧的可用模型表由账号决定、会变（一天内观测到 2 → 132 项）。页面上的列表来自最近一次检查，
   点「重新检测」刷新即可，不需要改插件。
 
